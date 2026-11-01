@@ -1,0 +1,577 @@
+from __future__ import annotations
+
+import argparse
+import json
+import time
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from catboost import CatBoostClassifier
+from sklearn.metrics import roc_auc_score, roc_curve
+from sklearn.model_selection import StratifiedGroupKFold
+
+
+NUMERIC_FEATURES = [
+    "speechiness",
+    "danceability",
+    "duration_ms",
+    "energy",
+    "instrumentalness",
+    "valence",
+    "tempo",
+    "loudness",
+    "acousticness",
+    "liveness",
+]
+CATEGORICAL_FEATURES = ["mode", "key", "time_signature"]
+MODEL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+DROPPED_FEATURES = [
+    "analysis_url",
+    "track_href",
+    "uri",
+    "type",
+    "track_album_release_date",
+]
+TARGET = "Popularity_Type"
+BASELINE_PARAMETERS = {
+    "iterations": 400,
+    "learning_rate": 0.02,
+    "depth": 6,
+    "l2_leaf_reg": 5,
+    "auto_class_weights": "Balanced",
+    "random_strength": 1,
+    "bagging_temperature": 1,
+}
+CONFIGURATIONS = [
+    BASELINE_PARAMETERS,
+    {**BASELINE_PARAMETERS, "random_strength": 0},
+    {**BASELINE_PARAMETERS, "random_strength": 0.5},
+    {**BASELINE_PARAMETERS, "random_strength": 2},
+    {**BASELINE_PARAMETERS, "random_strength": 5},
+    {**BASELINE_PARAMETERS, "bagging_temperature": 0},
+    {**BASELINE_PARAMETERS, "bagging_temperature": 0.5},
+    {**BASELINE_PARAMETERS, "bagging_temperature": 2},
+    {**BASELINE_PARAMETERS, "bagging_temperature": 5},
+    {**BASELINE_PARAMETERS, "l2_leaf_reg": 20},
+    {**BASELINE_PARAMETERS, "depth": 4},
+    {**BASELINE_PARAMETERS, "auto_class_weights": None},
+    {
+        **BASELINE_PARAMETERS,
+        "depth": 4,
+        "l2_leaf_reg": 20,
+        "auto_class_weights": None,
+    },
+    {
+        **BASELINE_PARAMETERS,
+        "depth": 4,
+        "l2_leaf_reg": 20,
+        "random_strength": 2,
+        "bagging_temperature": 2,
+    },
+]
+
+
+def parse_args() -> argparse.Namespace:
+    project_root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", type=Path, default=project_root / "data")
+    parser.add_argument(
+        "--results-dir",
+        type=Path,
+        default=Path(__file__).resolve().parent / "results",
+    )
+    parser.add_argument("--n-configs", type=int, default=len(CONFIGURATIONS))
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--thread-count", type=int, default=-1)
+    return parser.parse_args()
+
+
+def load_data(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    train_path = data_dir / "train.csv"
+    test_path = data_dir / "test.csv"
+    sample_path = data_dir / "sample_submission.csv"
+    for path in (train_path, test_path, sample_path):
+        if not path.exists():
+            raise FileNotFoundError(path)
+
+    train = pd.read_csv(train_path)
+    test = pd.read_csv(test_path)
+    sample_submission = pd.read_csv(sample_path)
+
+    required_train = set(MODEL_FEATURES + DROPPED_FEATURES + [TARGET])
+    required_test = set(MODEL_FEATURES + DROPPED_FEATURES + ["ID"])
+    missing_train = sorted(required_train - set(train.columns))
+    missing_test = sorted(required_test - set(test.columns))
+    if missing_train:
+        raise ValueError(f"Training data is missing columns: {missing_train}")
+    if missing_test:
+        raise ValueError(f"Test data is missing columns: {missing_test}")
+    return train, test, sample_submission
+
+
+def prepare_features(frame: pd.DataFrame) -> pd.DataFrame:
+    X = frame[MODEL_FEATURES].copy()
+    for column in CATEGORICAL_FEATURES:
+        X[column] = X[column].fillna("missing").astype(str)
+    return X
+
+
+def prepare_training_data(
+    train: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.Series, pd.Series, pd.Series, list[int]]:
+    valid_mask = train[MODEL_FEATURES].notna().any(axis=1)
+    removed_source_rows = train.index[~valid_mask].astype(int).tolist()
+    clean = train.loc[valid_mask].copy()
+
+    unknown_labels = sorted(set(clean[TARGET].dropna()) - {"Low", "High"})
+    if unknown_labels or clean[TARGET].isna().any():
+        raise ValueError(f"Unexpected target labels: {unknown_labels}")
+
+    X = prepare_features(clean).reset_index(drop=True)
+    y = clean[TARGET].map({"Low": 0, "High": 1}).reset_index(drop=True)
+    groups = clean["uri"].reset_index(drop=True)
+    source_rows = pd.Series(clean.index.to_numpy(), name="source_row")
+
+    if groups.isna().any():
+        missing = groups.isna()
+        groups.loc[missing] = [f"missing_uri_{i}" for i in groups.index[missing]]
+
+    return X, y, groups, source_rows, removed_source_rows
+
+
+def make_splits(
+    X: pd.DataFrame,
+    y: pd.Series,
+    groups: pd.Series,
+    seed: int,
+    n_splits: int,
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    splitter = StratifiedGroupKFold(
+        n_splits=n_splits,
+        shuffle=True,
+        random_state=seed,
+    )
+    splits = list(splitter.split(X, y, groups))
+    for train_indices, validation_indices in splits:
+        train_groups = set(groups.iloc[train_indices])
+        validation_groups = set(groups.iloc[validation_indices])
+        if train_groups & validation_groups:
+            raise RuntimeError("Group overlap detected.")
+    return splits
+
+
+def build_model(
+    parameters: dict[str, int | float | str | None],
+    seed: int,
+    thread_count: int,
+) -> CatBoostClassifier:
+    return CatBoostClassifier(
+        **parameters,
+        loss_function="Logloss",
+        eval_metric="AUC",
+        random_seed=seed,
+        thread_count=thread_count,
+        verbose=False,
+        allow_writing_files=False,
+    )
+
+
+def select_configurations(
+    n_configs: int,
+) -> list[dict[str, int | float | str | None]]:
+    count = max(1, min(n_configs, len(CONFIGURATIONS)))
+    return [parameters.copy() for parameters in CONFIGURATIONS[:count]]
+
+
+def tune_model(
+    X: pd.DataFrame,
+    y: pd.Series,
+    splits: list[tuple[np.ndarray, np.ndarray]],
+    configurations: list[dict[str, int | float | str | None]],
+    seed: int,
+    thread_count: int,
+    results_dir: Path,
+) -> tuple[pd.DataFrame, dict[str, int | float | str | None]]:
+    rows: list[dict[str, int | float | str]] = []
+
+    for number, parameters in enumerate(configurations, start=1):
+        start = time.perf_counter()
+        validation_scores: list[float] = []
+        training_scores: list[float] = []
+
+        for train_indices, validation_indices in splits:
+            model = build_model(parameters, seed, thread_count)
+            model.fit(
+                X.iloc[train_indices],
+                y.iloc[train_indices],
+                cat_features=CATEGORICAL_FEATURES,
+            )
+            training_probability = model.predict_proba(X.iloc[train_indices])[:, 1]
+            validation_probability = model.predict_proba(
+                X.iloc[validation_indices]
+            )[:, 1]
+            training_scores.append(
+                roc_auc_score(y.iloc[train_indices], training_probability)
+            )
+            validation_scores.append(
+                roc_auc_score(y.iloc[validation_indices], validation_probability)
+            )
+
+        rows.append(
+            {
+                "configuration": number,
+                "iterations": int(parameters["iterations"]),
+                "learning_rate": float(parameters["learning_rate"]),
+                "depth": int(parameters["depth"]),
+                "l2_leaf_reg": float(parameters["l2_leaf_reg"]),
+                "auto_class_weights": str(parameters["auto_class_weights"]),
+                "random_strength": float(parameters["random_strength"]),
+                "bagging_temperature": float(
+                    parameters["bagging_temperature"]
+                ),
+                "mean_validation_auc": float(np.mean(validation_scores)),
+                "std_validation_auc": float(np.std(validation_scores, ddof=0)),
+                "mean_training_auc": float(np.mean(training_scores)),
+                "elapsed_seconds": time.perf_counter() - start,
+            }
+        )
+        print(
+            f"{number}/{len(configurations)} "
+            f"AUC={np.mean(validation_scores):.6f}"
+        )
+
+    results = pd.DataFrame(rows).sort_values(
+        "mean_validation_auc", ascending=False
+    )
+    results.insert(0, "rank", np.arange(1, len(results) + 1))
+    results.to_csv(results_dir / "tuning_results.csv", index=False)
+
+    best_number = int(results.iloc[0]["configuration"])
+    best_parameters = configurations[best_number - 1]
+    return results, best_parameters
+
+
+def evaluate_model(
+    X: pd.DataFrame,
+    y: pd.Series,
+    groups: pd.Series,
+    source_rows: pd.Series,
+    splits: list[tuple[np.ndarray, np.ndarray]],
+    parameters: dict[str, int | float | str | None],
+    seed: int,
+    thread_count: int,
+    results_dir: Path,
+) -> tuple[pd.DataFrame, np.ndarray]:
+    oof_probability = np.full(len(y), np.nan)
+    fold_rows: list[dict[str, int | float]] = []
+    curves: list[tuple[np.ndarray, np.ndarray, float]] = []
+
+    for fold, (train_indices, validation_indices) in enumerate(splits, start=1):
+        model = build_model(parameters, seed, thread_count)
+        model.fit(
+            X.iloc[train_indices],
+            y.iloc[train_indices],
+            cat_features=CATEGORICAL_FEATURES,
+        )
+        probability = model.predict_proba(X.iloc[validation_indices])[:, 1]
+        oof_probability[validation_indices] = probability
+        auc = roc_auc_score(y.iloc[validation_indices], probability)
+        fpr, tpr, _ = roc_curve(y.iloc[validation_indices], probability)
+        curves.append((fpr, tpr, auc))
+        fold_rows.append(
+            {
+                "fold": fold,
+                "training_rows": len(train_indices),
+                "validation_rows": len(validation_indices),
+                "training_groups": groups.iloc[train_indices].nunique(),
+                "validation_groups": groups.iloc[validation_indices].nunique(),
+                "training_high_fraction": y.iloc[train_indices].mean(),
+                "validation_high_fraction": y.iloc[validation_indices].mean(),
+                "validation_auc": auc,
+            }
+        )
+
+    fold_metrics = pd.DataFrame(fold_rows)
+    fold_metrics.to_csv(results_dir / "fold_metrics.csv", index=False)
+    pd.DataFrame(
+        {
+            "source_row": source_rows.astype(int),
+            "actual_label": np.where(y == 1, "High", "Low"),
+            "high_probability": oof_probability,
+        }
+    ).to_csv(results_dir / "oof_predictions.csv", index=False)
+    plot_roc_curves(curves, results_dir)
+    return fold_metrics, oof_probability
+
+
+def plot_roc_curves(
+    curves: list[tuple[np.ndarray, np.ndarray, float]],
+    results_dir: Path,
+) -> None:
+    mean_fpr = np.linspace(0, 1, 501)
+    interpolated_tprs = []
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    for fold, (fpr, tpr, auc) in enumerate(curves, start=1):
+        ax.plot(fpr, tpr, alpha=0.45, label=f"Fold {fold} (AUC={auc:.3f})")
+        interpolated = np.interp(mean_fpr, fpr, tpr)
+        interpolated[0] = 0
+        interpolated_tprs.append(interpolated)
+
+    mean_tpr = np.mean(interpolated_tprs, axis=0)
+    mean_tpr[-1] = 1
+    mean_auc = np.trapezoid(mean_tpr, mean_fpr)
+    ax.plot(
+        mean_fpr,
+        mean_tpr,
+        color="black",
+        linewidth=2.5,
+        label=f"Mean ROC (AUC={mean_auc:.3f})",
+    )
+    ax.plot([0, 1], [0, 1], linestyle="--", color="gray", label="Random")
+    ax.set(
+        xlabel="False positive rate",
+        ylabel="True positive rate",
+        title="CatBoost grouped 5-fold validation ROC curves",
+    )
+    ax.legend(loc="lower right")
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(results_dir / "roc_curves.png", dpi=180)
+    plt.close(fig)
+
+
+def plot_tuning_results(results: pd.DataFrame, results_dir: Path) -> None:
+    ordered = results.sort_values("mean_validation_auc")
+    fig, ax = plt.subplots(figsize=(9, 7))
+    ax.barh(
+        ordered["configuration"].astype(str),
+        ordered["mean_validation_auc"],
+        xerr=ordered["std_validation_auc"],
+        color="#457b9d",
+        alpha=0.85,
+    )
+    ax.set(
+        xlabel="Mean grouped validation ROC-AUC",
+        ylabel="Configuration",
+        title="CatBoost hyperparameter search",
+    )
+    ax.grid(axis="x", alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(results_dir / "tuning_results.png", dpi=180)
+    plt.close(fig)
+
+
+def plot_hyperparameter_effects(
+    results: pd.DataFrame,
+    results_dir: Path,
+) -> None:
+    parameters = [
+        "iterations",
+        "learning_rate",
+        "depth",
+        "l2_leaf_reg",
+        "auto_class_weights",
+        "random_strength",
+        "bagging_temperature",
+    ]
+    fig, axes = plt.subplots(3, 3, figsize=(15, 13))
+    for ax, parameter in zip(axes.flat, parameters):
+        mask = pd.Series(True, index=results.index)
+        for other_parameter in parameters:
+            if other_parameter != parameter:
+                baseline_value = BASELINE_PARAMETERS[other_parameter]
+                if other_parameter == "auto_class_weights":
+                    mask &= results[other_parameter].astype(str) == str(
+                        baseline_value
+                    )
+                else:
+                    mask &= results[other_parameter] == baseline_value
+        comparison = results.loc[
+            mask, [parameter, "mean_validation_auc"]
+        ].sort_values(parameter)
+        labels = comparison[parameter].fillna("None").astype(str)
+        ax.plot(
+            labels,
+            comparison["mean_validation_auc"],
+            marker="o",
+        )
+        ax.set(
+            xlabel=parameter,
+            ylabel="Mean validation AUC",
+            title=parameter,
+        )
+        ax.grid(alpha=0.2)
+    for ax in axes.flat[len(parameters) :]:
+        ax.axis("off")
+    fig.tight_layout()
+    fig.savefig(results_dir / "hyperparameter_effects.png", dpi=180)
+    plt.close(fig)
+
+
+def save_feature_importance(
+    model: CatBoostClassifier,
+    results_dir: Path,
+) -> pd.DataFrame:
+    importance = pd.DataFrame(
+        {
+            "feature": MODEL_FEATURES,
+            "importance": model.get_feature_importance(),
+        }
+    ).sort_values("importance", ascending=False)
+    importance.insert(0, "rank", np.arange(1, len(importance) + 1))
+    importance.to_csv(results_dir / "feature_importance.csv", index=False)
+
+    ordered = importance.sort_values("importance")
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.barh(ordered["feature"], ordered["importance"], color="#2a9d8f")
+    ax.set(
+        xlabel="CatBoost feature importance",
+        ylabel="Feature",
+        title="CatBoost feature importance",
+    )
+    ax.grid(axis="x", alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(results_dir / "feature_importance.png", dpi=180)
+    plt.close(fig)
+    return importance
+
+
+def plot_class_distribution(y: pd.Series, results_dir: Path) -> None:
+    counts = pd.Series(
+        {"Low": int((y == 0).sum()), "High": int((y == 1).sum())}
+    )
+    fig, ax = plt.subplots(figsize=(6, 4))
+    bars = ax.bar(counts.index, counts.values, color=["#457b9d", "#e76f51"])
+    ax.bar_label(bars)
+    ax.set(
+        xlabel="Popularity type",
+        ylabel="Number of training songs",
+        title="Training class distribution",
+    )
+    ax.grid(axis="y", alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(results_dir / "class_distribution.png", dpi=180)
+    plt.close(fig)
+
+
+def save_summary(
+    parameters: dict[str, int | float | str | None],
+    tuning_results: pd.DataFrame,
+    fold_metrics: pd.DataFrame,
+    y: pd.Series,
+    removed_source_rows: list[int],
+    feature_importance: pd.DataFrame,
+    results_dir: Path,
+) -> None:
+    summary = {
+        "model": "CatBoostClassifier",
+        "loss": "Logloss",
+        "evaluation_metric": "AUC",
+        "tuning": "3-fold StratifiedGroupKFold grouped by uri",
+        "validation": "5-fold StratifiedGroupKFold grouped by uri",
+        "best_parameters": parameters,
+        "mean_validation_auc": float(fold_metrics["validation_auc"].mean()),
+        "std_validation_auc": float(
+            fold_metrics["validation_auc"].std(ddof=1)
+        ),
+        "training_rows_used": int(len(y)),
+        "class_counts": {
+            "Low": int((y == 0).sum()),
+            "High": int((y == 1).sum()),
+        },
+        "removed_zero_feature_source_rows": removed_source_rows,
+        "configurations_tested": int(len(tuning_results)),
+        "top_features": feature_importance["feature"].head(10).tolist(),
+    }
+    (results_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2),
+        encoding="utf-8",
+    )
+    lines = [
+        "# CatBoost Results",
+        "",
+        f"- Mean grouped 5-fold validation AUC: "
+        f"`{fold_metrics['validation_auc'].mean():.6f}`",
+        f"- Fold AUC standard deviation: "
+        f"`{fold_metrics['validation_auc'].std(ddof=1):.6f}`",
+        f"- Configurations tested: `{len(tuning_results)}`",
+        f"- Best parameters: `{json.dumps(parameters)}`",
+    ]
+    (results_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def main() -> None:
+    args = parse_args()
+    args.results_dir.mkdir(parents=True, exist_ok=True)
+
+    train, test, sample_submission = load_data(args.data_dir)
+    X, y, groups, source_rows, removed_source_rows = prepare_training_data(train)
+    X_test = prepare_features(test)
+    tuning_splits = make_splits(X, y, groups, args.seed, 3)
+    evaluation_splits = make_splits(X, y, groups, args.seed, 5)
+    configurations = select_configurations(args.n_configs)
+
+    tuning_results, best_parameters = tune_model(
+        X,
+        y,
+        tuning_splits,
+        configurations,
+        args.seed,
+        args.thread_count,
+        args.results_dir,
+    )
+    plot_tuning_results(tuning_results, args.results_dir)
+    plot_hyperparameter_effects(tuning_results, args.results_dir)
+
+    fold_metrics, _ = evaluate_model(
+        X,
+        y,
+        groups,
+        source_rows,
+        evaluation_splits,
+        best_parameters,
+        args.seed,
+        args.thread_count,
+        args.results_dir,
+    )
+
+    final_model = build_model(best_parameters, args.seed, args.thread_count)
+    final_model.fit(X, y, cat_features=CATEGORICAL_FEATURES)
+    feature_importance = save_feature_importance(final_model, args.results_dir)
+    plot_class_distribution(y, args.results_dir)
+
+    test_probability = final_model.predict_proba(X_test)[:, 1]
+    if len(sample_submission) != len(test):
+        raise ValueError("Submission and test lengths differ.")
+    submission = sample_submission.copy()
+    submission["ID"] = test["ID"].to_numpy()
+    submission[TARGET] = test_probability
+    submission.to_csv(args.results_dir / "submission.csv", index=False)
+
+    save_summary(
+        best_parameters,
+        tuning_results,
+        fold_metrics,
+        y,
+        removed_source_rows,
+        feature_importance,
+        args.results_dir,
+    )
+
+    print(f"Best parameters: {best_parameters}")
+    print(
+        "Mean grouped 5-fold validation AUC: "
+        f"{fold_metrics['validation_auc'].mean():.6f}"
+    )
+    print(f"Results written to: {args.results_dir.resolve()}")
+
+
+if __name__ == "__main__":
+    main()

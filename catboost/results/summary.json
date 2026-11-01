@@ -1,0 +1,39 @@
+{
+  "model": "CatBoostClassifier",
+  "loss": "Logloss",
+  "evaluation_metric": "AUC",
+  "tuning": "3-fold StratifiedGroupKFold grouped by uri",
+  "validation": "5-fold StratifiedGroupKFold grouped by uri",
+  "best_parameters": {
+    "iterations": 400,
+    "learning_rate": 0.02,
+    "depth": 6,
+    "l2_leaf_reg": 5,
+    "auto_class_weights": "Balanced",
+    "random_strength": 0.5,
+    "bagging_temperature": 1
+  },
+  "mean_validation_auc": 0.7614747311996445,
+  "std_validation_auc": 0.013198501591358545,
+  "training_rows_used": 3863,
+  "class_counts": {
+    "Low": 2504,
+    "High": 1359
+  },
+  "removed_zero_feature_source_rows": [
+    425
+  ],
+  "configurations_tested": 14,
+  "top_features": [
+    "instrumentalness",
+    "duration_ms",
+    "loudness",
+    "acousticness",
+    "speechiness",
+    "energy",
+    "valence",
+    "tempo",
+    "danceability",
+    "liveness"
+  ]
+}
