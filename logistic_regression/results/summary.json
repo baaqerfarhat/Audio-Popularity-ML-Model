@@ -1,0 +1,30 @@
+{
+  "model": "L2-regularized logistic regression",
+  "loss": "binary cross-entropy",
+  "class_weight": "balanced",
+  "validation": "5-fold StratifiedGroupKFold grouped by uri",
+  "best_C": 0.1,
+  "grid_search_mean_validation_auc": 0.7216390840827343,
+  "fold_auc_mean": 0.7216390840827343,
+  "fold_auc_std": 0.02325155662111594,
+  "training_rows_used": 3863,
+  "class_counts": {
+    "Low": 2504,
+    "High": 1359
+  },
+  "removed_zero_feature_source_rows": [
+    425
+  ],
+  "top_10_transformed_features_by_absolute_coefficient": [
+    "numeric__instrumentalness",
+    "numeric__loudness",
+    "numeric__acousticness",
+    "categorical__time_signature_3.0",
+    "categorical__time_signature_5.0",
+    "categorical__key_0.0",
+    "categorical__key_11.0",
+    "numeric__energy",
+    "numeric__speechiness",
+    "binary__mode"
+  ]
+}
