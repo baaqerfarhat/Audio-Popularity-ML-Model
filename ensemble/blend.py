@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
         default=project_root / "lightgbm" / "results",
     )
     parser.add_argument(
+        "--xgboost-results",
+        type=Path,
+        default=project_root / "xgboost" / "results",
+    )
+    parser.add_argument(
         "--train-path",
         type=Path,
         default=project_root / "data" / "train.csv",
@@ -67,6 +72,7 @@ def rank_percentile(values: pd.Series | np.ndarray) -> np.ndarray:
 def load_oof(
     catboost_results: Path,
     lightgbm_results: Path,
+    xgboost_results: Path,
 ) -> pd.DataFrame:
     catboost = pd.read_csv(catboost_results / "oof_predictions.csv").rename(
         columns={"high_probability": "catboost_probability"}
@@ -74,13 +80,25 @@ def load_oof(
     lightgbm = pd.read_csv(lightgbm_results / "oof_predictions.csv").rename(
         columns={"high_probability": "lightgbm_probability"}
     )
+    xgboost = pd.read_csv(xgboost_results / "oof_predictions.csv").rename(
+        columns={"high_probability": "xgboost_probability"}
+    )
     merged = catboost.merge(
         lightgbm,
         on=["source_row", "actual_label"],
         how="inner",
         validate="one_to_one",
+    ).merge(
+        xgboost,
+        on=["source_row", "actual_label"],
+        how="inner",
+        validate="one_to_one",
     ).sort_values("source_row")
-    if len(merged) != len(catboost) or len(merged) != len(lightgbm):
+    if (
+        len(merged) != len(catboost)
+        or len(merged) != len(lightgbm)
+        or len(merged) != len(xgboost)
+    ):
         raise ValueError("OOF prediction rows do not align.")
     return merged.reset_index(drop=True)
 
@@ -131,37 +149,49 @@ def search_weights(
     y = (oof["actual_label"] == "High").astype(int).to_numpy()
     cat_probability = oof["catboost_probability"].to_numpy()
     lgb_probability = oof["lightgbm_probability"].to_numpy()
+    xgb_probability = oof["xgboost_probability"].to_numpy()
     cat_rank = rank_percentile(cat_probability)
     lgb_rank = rank_percentile(lgb_probability)
+    xgb_rank = rank_percentile(xgb_probability)
     rows = []
     predictions = {}
 
-    for method, cat_values, lgb_values in [
-        ("probability", cat_probability, lgb_probability),
-        ("rank", cat_rank, lgb_rank),
+    for method, cat_values, lgb_values, xgb_values in [
+        ("probability", cat_probability, lgb_probability, xgb_probability),
+        ("rank", cat_rank, lgb_rank, xgb_rank),
     ]:
-        for catboost_weight in np.linspace(0, 1, 101):
-            blended = (
-                catboost_weight * cat_values
-                + (1 - catboost_weight) * lgb_values
-            )
-            overall_auc, mean_fold_auc, std_fold_auc = score_candidate(
-                y,
-                blended,
-                fold_ids,
-            )
-            key = (method, round(float(catboost_weight), 2))
-            predictions[key] = blended
-            rows.append(
-                {
-                    "method": method,
-                    "catboost_weight": catboost_weight,
-                    "lightgbm_weight": 1 - catboost_weight,
-                    "overall_auc": overall_auc,
-                    "mean_fold_auc": mean_fold_auc,
-                    "std_fold_auc": std_fold_auc,
-                }
-            )
+        for cat_step in range(51):
+            catboost_weight = cat_step / 50
+            for lgb_step in range(51 - cat_step):
+                lightgbm_weight = lgb_step / 50
+                xgboost_weight = 1 - catboost_weight - lightgbm_weight
+                blended = (
+                    catboost_weight * cat_values
+                    + lightgbm_weight * lgb_values
+                    + xgboost_weight * xgb_values
+                )
+                overall_auc, mean_fold_auc, std_fold_auc = score_candidate(
+                    y,
+                    blended,
+                    fold_ids,
+                )
+                key = (
+                    method,
+                    round(catboost_weight, 2),
+                    round(lightgbm_weight, 2),
+                )
+                predictions[key] = blended
+                rows.append(
+                    {
+                        "method": method,
+                        "catboost_weight": catboost_weight,
+                        "lightgbm_weight": lightgbm_weight,
+                        "xgboost_weight": xgboost_weight,
+                        "overall_auc": overall_auc,
+                        "mean_fold_auc": mean_fold_auc,
+                        "std_fold_auc": std_fold_auc,
+                    }
+                )
 
     results = pd.DataFrame(rows).sort_values(
         ["overall_auc", "mean_fold_auc"],
@@ -169,13 +199,18 @@ def search_weights(
     )
     results.insert(0, "rank", np.arange(1, len(results) + 1))
     best = results.iloc[0]
-    key = (str(best["method"]), round(float(best["catboost_weight"]), 2))
+    key = (
+        str(best["method"]),
+        round(float(best["catboost_weight"]), 2),
+        round(float(best["lightgbm_weight"]), 2),
+    )
     return results, best, predictions[key]
 
 
 def build_submission(
     catboost_results: Path,
     lightgbm_results: Path,
+    xgboost_results: Path,
     best: pd.Series,
     results_dir: Path,
 ) -> None:
@@ -185,21 +220,34 @@ def build_submission(
     lightgbm = pd.read_csv(lightgbm_results / "submission.csv").rename(
         columns={TARGET: "lightgbm_probability"}
     )
+    xgboost = pd.read_csv(xgboost_results / "submission.csv").rename(
+        columns={TARGET: "xgboost_probability"}
+    )
     merged = catboost.merge(
         lightgbm,
+        on="ID",
+        how="inner",
+        validate="one_to_one",
+    ).merge(
+        xgboost,
         on="ID",
         how="inner",
         validate="one_to_one",
     )
     cat_values = merged["catboost_probability"].to_numpy()
     lgb_values = merged["lightgbm_probability"].to_numpy()
+    xgb_values = merged["xgboost_probability"].to_numpy()
     if best["method"] == "rank":
         cat_values = rank_percentile(cat_values)
         lgb_values = rank_percentile(lgb_values)
+        xgb_values = rank_percentile(xgb_values)
     catboost_weight = float(best["catboost_weight"])
+    lightgbm_weight = float(best["lightgbm_weight"])
+    xgboost_weight = float(best["xgboost_weight"])
     merged[TARGET] = (
         catboost_weight * cat_values
-        + (1 - catboost_weight) * lgb_values
+        + lightgbm_weight * lgb_values
+        + xgboost_weight * xgb_values
     )
     merged[["ID", TARGET]].to_csv(
         results_dir / "submission.csv",
@@ -229,6 +277,10 @@ def save_fold_metrics(
                     y[mask],
                     oof.loc[mask, "lightgbm_probability"],
                 ),
+                "xgboost_auc": roc_auc_score(
+                    y[mask],
+                    oof.loc[mask, "xgboost_probability"],
+                ),
                 "ensemble_auc": roc_auc_score(
                     y[mask],
                     ensemble_probability[mask],
@@ -245,28 +297,35 @@ def plot_weight_search(
     best: pd.Series,
     results_dir: Path,
 ) -> None:
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for method, group in results.groupby("method"):
-        group = group.sort_values("catboost_weight")
-        ax.plot(
+    methods = sorted(results["method"].unique())
+    fig, axes = plt.subplots(1, len(methods), figsize=(13, 5), sharex=True, sharey=True)
+    for ax, method in zip(axes, methods):
+        group = results[results["method"] == method]
+        scatter = ax.scatter(
             group["catboost_weight"],
-            group["overall_auc"],
-            label=method,
+            group["lightgbm_weight"],
+            c=group["overall_auc"],
+            cmap="viridis",
+            s=24,
         )
-    ax.scatter(
-        [best["catboost_weight"]],
-        [best["overall_auc"]],
-        color="black",
-        zorder=5,
-        label="selected",
-    )
-    ax.set(
-        xlabel="CatBoost weight",
-        ylabel="OOF ROC-AUC",
-        title="CatBoost and LightGBM blend search",
-    )
-    ax.grid(alpha=0.2)
-    ax.legend()
+        if method == best["method"]:
+            ax.scatter(
+                [best["catboost_weight"]],
+                [best["lightgbm_weight"]],
+                marker="*",
+                color="red",
+                s=160,
+                label="selected",
+            )
+            ax.legend()
+        ax.set(
+            xlabel="CatBoost weight",
+            ylabel="LightGBM weight",
+            title=method,
+        )
+        ax.grid(alpha=0.2)
+        fig.colorbar(scatter, ax=ax, label="OOF ROC-AUC")
+    fig.suptitle("Three-model ensemble weight search")
     fig.tight_layout()
     fig.savefig(results_dir / "auc_by_weight.png", dpi=180)
     plt.close(fig)
@@ -282,6 +341,7 @@ def plot_roc_comparison(
     series = [
         ("CatBoost", oof["catboost_probability"].to_numpy()),
         ("LightGBM", oof["lightgbm_probability"].to_numpy()),
+        ("XGBoost", oof["xgboost_probability"].to_numpy()),
         ("Ensemble", ensemble_probability),
     ]
     for name, probability in series:
@@ -311,15 +371,19 @@ def save_summary(
 ) -> None:
     y = (oof["actual_label"] == "High").astype(int).to_numpy()
     summary = {
-        "models": ["CatBoost", "LightGBM"],
+        "models": ["CatBoost", "LightGBM", "XGBoost"],
         "method": str(best["method"]),
         "catboost_weight": float(best["catboost_weight"]),
         "lightgbm_weight": float(best["lightgbm_weight"]),
+        "xgboost_weight": float(best["xgboost_weight"]),
         "catboost_oof_auc": float(
             roc_auc_score(y, oof["catboost_probability"])
         ),
         "lightgbm_oof_auc": float(
             roc_auc_score(y, oof["lightgbm_probability"])
+        ),
+        "xgboost_oof_auc": float(
+            roc_auc_score(y, oof["xgboost_probability"])
         ),
         "ensemble_oof_auc": float(
             roc_auc_score(y, ensemble_probability)
@@ -337,8 +401,10 @@ def save_summary(
         f"- Method: `{summary['method']}`",
         f"- CatBoost weight: `{summary['catboost_weight']:.2f}`",
         f"- LightGBM weight: `{summary['lightgbm_weight']:.2f}`",
+        f"- XGBoost weight: `{summary['xgboost_weight']:.2f}`",
         f"- CatBoost OOF AUC: `{summary['catboost_oof_auc']:.6f}`",
         f"- LightGBM OOF AUC: `{summary['lightgbm_oof_auc']:.6f}`",
+        f"- XGBoost OOF AUC: `{summary['xgboost_oof_auc']:.6f}`",
         f"- Ensemble OOF AUC: `{summary['ensemble_oof_auc']:.6f}`",
     ]
     (results_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -347,7 +413,11 @@ def save_summary(
 def main() -> None:
     args = parse_args()
     args.results_dir.mkdir(parents=True, exist_ok=True)
-    oof = load_oof(args.catboost_results, args.lightgbm_results)
+    oof = load_oof(
+        args.catboost_results,
+        args.lightgbm_results,
+        args.xgboost_results,
+    )
     fold_ids = make_fold_ids(args.train_path, oof["source_row"], args.seed)
     weight_results, best, ensemble_probability = search_weights(oof, fold_ids)
     weight_results.to_csv(args.results_dir / "weight_search.csv", index=False)
@@ -364,6 +434,7 @@ def main() -> None:
     build_submission(
         args.catboost_results,
         args.lightgbm_results,
+        args.xgboost_results,
         best,
         args.results_dir,
     )
@@ -379,7 +450,8 @@ def main() -> None:
     print(
         f"Selected {best['method']} blend: "
         f"CatBoost={best['catboost_weight']:.2f}, "
-        f"LightGBM={best['lightgbm_weight']:.2f}"
+        f"LightGBM={best['lightgbm_weight']:.2f}, "
+        f"XGBoost={best['xgboost_weight']:.2f}"
     )
     print(f"Ensemble OOF AUC: {best['overall_auc']:.6f}")
     print(f"Results written to: {args.results_dir.resolve()}")

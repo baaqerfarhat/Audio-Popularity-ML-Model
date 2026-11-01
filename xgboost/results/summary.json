@@ -1,0 +1,41 @@
+{
+  "model": "XGBClassifier",
+  "device": "cuda",
+  "engineered_features": [
+    "release_year",
+    "release_month",
+    "release_day",
+    "release_ordinal",
+    "release_precision"
+  ],
+  "tuning": "3-fold StratifiedGroupKFold grouped by uri",
+  "validation": "5-fold StratifiedGroupKFold grouped by uri",
+  "best_parameters": {
+    "subsample": 0.7,
+    "scale_pos_weight": 1.84,
+    "reg_lambda": 1.0,
+    "reg_alpha": 0.0,
+    "n_estimators": 500,
+    "min_child_weight": 3,
+    "max_depth": 4,
+    "max_bin": 128,
+    "learning_rate": 0.02,
+    "gamma": 0.1,
+    "colsample_bytree": 0.7
+  },
+  "mean_validation_auc": 0.8254998906189763,
+  "std_validation_auc": 0.016736376733292008,
+  "configurations_tested": 40,
+  "top_features": [
+    "instrumentalness",
+    "release_year",
+    "loudness",
+    "release_ordinal",
+    "acousticness",
+    "energy",
+    "duration_ms",
+    "time_signature",
+    "key",
+    "danceability"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "seeds": [
+    42,
+    123,
+    2026
+  ],
+  "folds": 5,
+  "engineered_features": [
+    "log_duration",
+    "tempo_half_distance",
+    "loud_energy",
+    "energy_acoustic",
+    "nonvocal",
+    "dance_energy"
+  ],
+  "model_auc": {
+    "onehot_xgboost": 0.8329023819431222,
+    "enhanced_catboost": 0.8328647673655925,
+    "enhanced_lightgbm": 0.8302852301659509,
+    "bagged_lightgbm": 0.8284171374366136,
+    "bagged_catboost": 0.8280530400806834,
+    "histogram_boosting": 0.826692891079938,
+    "random_forest": 0.8252525172380556,
+    "extra_trees": 0.8234481929721863,
+    "ebm": 0.8234226268140218
+  },
+  "selected_weights": {
+    "bagged_catboost": 0.047651054822399994,
+    "bagged_lightgbm": 0.03152825429199999,
+    "enhanced_catboost": 0.3160769147301599,
+    "enhanced_lightgbm": 0.0,
+    "extra_trees": 0.22767624012191992,
+    "random_forest": 0.0,
+    "histogram_boosting": 0.085596464,
+    "onehot_xgboost": 0.21465926803351998,
+    "ebm": 0.076811804
+  },
+  "crossfit_ensemble_auc": 0.8354960246093373,
+  "selected_weight_oof_auc": 0.8368936412556686,
+  "full_weight_oof_auc": 0.8368768910141124,
+  "equal_vote_oof_auc": 0.8361190160496701
+}

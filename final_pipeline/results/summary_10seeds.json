@@ -1,0 +1,52 @@
+{
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "models": {
+    "lgb_tuned": {
+      "oof_auc": 0.8570379078536886,
+      "test_like_auc": 0.8404944945106454
+    },
+    "lgb_deep": {
+      "oof_auc": 0.8540257148532915,
+      "test_like_auc": 0.8377493842522081
+    },
+    "xgb_tuned": {
+      "oof_auc": 0.8559277341683769,
+      "test_like_auc": 0.8402056083775251
+    },
+    "cat_tuned": {
+      "oof_auc": 0.8567108667339026,
+      "test_like_auc": 0.8396685883024079
+    },
+    "cat_base": {
+      "oof_auc": 0.8547867194681299,
+      "test_like_auc": 0.8376329424516846
+    },
+    "extra_trees": {
+      "oof_auc": 0.8523907149590823,
+      "test_like_auc": 0.8348468086120473
+    }
+  },
+  "blend": {
+    "weights": {
+      "lgb_tuned": 0.25,
+      "extra_trees": 0.25,
+      "xgb_tuned": 0.25,
+      "cat_tuned": 0.25
+    },
+    "oof_auc": 0.8595319600486168,
+    "test_like_auc": 0.8431191247491311,
+    "equal_weight_oof_auc": 0.8593352034831098,
+    "equal_weight_test_like_auc": 0.8429258394643366
+  }
+}

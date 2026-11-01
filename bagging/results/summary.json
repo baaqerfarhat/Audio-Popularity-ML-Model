@@ -1,0 +1,19 @@
+{
+  "seeds": [
+    42,
+    123,
+    2026,
+    31415,
+    9001
+  ],
+  "folds": 5,
+  "models_per_family": 25,
+  "method": "probability",
+  "catboost_weight": 0.44,
+  "lightgbm_weight": 0.56,
+  "catboost_oof_auc": 0.8280530400806834,
+  "lightgbm_oof_auc": 0.8284171374366136,
+  "ensemble_oof_auc": 0.8308041937903035,
+  "mean_fold_auc": 0.832042159842468,
+  "std_fold_auc": 0.01583584922614551
+}
