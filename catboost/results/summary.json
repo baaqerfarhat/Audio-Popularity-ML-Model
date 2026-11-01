@@ -2,19 +2,32 @@
   "model": "CatBoostClassifier",
   "loss": "Logloss",
   "evaluation_metric": "AUC",
+  "task_type": "GPU",
+  "engineered_features": [
+    "release_year",
+    "release_month",
+    "release_day",
+    "release_ordinal",
+    "release_precision"
+  ],
   "tuning": "3-fold StratifiedGroupKFold grouped by uri",
   "validation": "5-fold StratifiedGroupKFold grouped by uri",
   "best_parameters": {
     "iterations": 400,
-    "learning_rate": 0.02,
+    "learning_rate": 0.03,
     "depth": 6,
     "l2_leaf_reg": 5,
     "auto_class_weights": "Balanced",
-    "random_strength": 0.5,
-    "bagging_temperature": 1
+    "random_strength": 1,
+    "bootstrap_type": "Bayesian",
+    "bagging_temperature": 0,
+    "boosting_type": "Plain",
+    "border_count": 128,
+    "one_hot_max_size": 2,
+    "leaf_estimation_iterations": 10
   },
-  "mean_validation_auc": 0.7614747311996445,
-  "std_validation_auc": 0.013198501591358545,
+  "mean_validation_auc": 0.8269296366797508,
+  "std_validation_auc": 0.016442301090477243,
   "training_rows_used": 3863,
   "class_counts": {
     "Low": 2504,
@@ -23,17 +36,17 @@
   "removed_zero_feature_source_rows": [
     425
   ],
-  "configurations_tested": 14,
+  "configurations_tested": 31,
   "top_features": [
     "instrumentalness",
-    "duration_ms",
+    "release_year",
+    "release_ordinal",
     "loudness",
+    "duration_ms",
     "acousticness",
-    "speechiness",
-    "energy",
     "valence",
-    "tempo",
+    "energy",
     "danceability",
-    "liveness"
+    "release_day"
   ]
 }

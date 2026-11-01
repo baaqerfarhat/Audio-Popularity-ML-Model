@@ -29,8 +29,24 @@ NUMERIC_FEATURES = [
     "acousticness",
     "liveness",
 ]
-CATEGORICAL_FEATURES = ["mode", "key", "time_signature"]
-MODEL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+RAW_CATEGORICAL_FEATURES = ["mode", "key", "time_signature"]
+ENGINEERED_NUMERIC_FEATURES = [
+    "release_year",
+    "release_month",
+    "release_day",
+    "release_ordinal",
+]
+ENGINEERED_CATEGORICAL_FEATURES = ["release_precision"]
+ENGINEERED_FEATURES = (
+    ENGINEERED_NUMERIC_FEATURES + ENGINEERED_CATEGORICAL_FEATURES
+)
+CATEGORICAL_FEATURES = (
+    RAW_CATEGORICAL_FEATURES + ENGINEERED_CATEGORICAL_FEATURES
+)
+RAW_MODEL_FEATURES = NUMERIC_FEATURES + RAW_CATEGORICAL_FEATURES
+MODEL_FEATURES = (
+    NUMERIC_FEATURES + ENGINEERED_NUMERIC_FEATURES + CATEGORICAL_FEATURES
+)
 DROPPED_FEATURES = [
     "analysis_url",
     "track_href",
@@ -41,38 +57,65 @@ DROPPED_FEATURES = [
 TARGET = "Popularity_Type"
 BASELINE_PARAMETERS = {
     "iterations": 400,
-    "learning_rate": 0.02,
+    "learning_rate": 0.03,
     "depth": 6,
     "l2_leaf_reg": 5,
     "auto_class_weights": "Balanced",
     "random_strength": 1,
-    "bagging_temperature": 1,
+    "bootstrap_type": "Bayesian",
+    "bagging_temperature": 0,
+    "boosting_type": "Plain",
+    "border_count": 128,
+    "one_hot_max_size": 2,
+    "leaf_estimation_iterations": 1,
 }
 CONFIGURATIONS = [
     BASELINE_PARAMETERS,
-    {**BASELINE_PARAMETERS, "random_strength": 0},
-    {**BASELINE_PARAMETERS, "random_strength": 0.5},
-    {**BASELINE_PARAMETERS, "random_strength": 2},
-    {**BASELINE_PARAMETERS, "random_strength": 5},
-    {**BASELINE_PARAMETERS, "bagging_temperature": 0},
-    {**BASELINE_PARAMETERS, "bagging_temperature": 0.5},
-    {**BASELINE_PARAMETERS, "bagging_temperature": 2},
-    {**BASELINE_PARAMETERS, "bagging_temperature": 5},
+    {**BASELINE_PARAMETERS, "iterations": 300},
+    {**BASELINE_PARAMETERS, "iterations": 500},
+    {**BASELINE_PARAMETERS, "iterations": 600},
+    {**BASELINE_PARAMETERS, "iterations": 800},
+    {**BASELINE_PARAMETERS, "learning_rate": 0.02},
+    {**BASELINE_PARAMETERS, "learning_rate": 0.025},
+    {**BASELINE_PARAMETERS, "learning_rate": 0.035},
+    {**BASELINE_PARAMETERS, "learning_rate": 0.04},
+    {**BASELINE_PARAMETERS, "learning_rate": 0.05},
+    {**BASELINE_PARAMETERS, "depth": 5},
+    {**BASELINE_PARAMETERS, "depth": 7},
+    {**BASELINE_PARAMETERS, "depth": 8},
+    {**BASELINE_PARAMETERS, "l2_leaf_reg": 1},
+    {**BASELINE_PARAMETERS, "l2_leaf_reg": 3},
+    {**BASELINE_PARAMETERS, "l2_leaf_reg": 10},
     {**BASELINE_PARAMETERS, "l2_leaf_reg": 20},
-    {**BASELINE_PARAMETERS, "depth": 4},
+    {**BASELINE_PARAMETERS, "random_strength": 0.5},
+    {**BASELINE_PARAMETERS, "random_strength": 1.5},
+    {**BASELINE_PARAMETERS, "random_strength": 2},
     {**BASELINE_PARAMETERS, "auto_class_weights": None},
+    {**BASELINE_PARAMETERS, "border_count": 64},
+    {**BASELINE_PARAMETERS, "border_count": 254},
+    {**BASELINE_PARAMETERS, "one_hot_max_size": 5},
+    {**BASELINE_PARAMETERS, "one_hot_max_size": 12},
+    {**BASELINE_PARAMETERS, "leaf_estimation_iterations": 3},
+    {**BASELINE_PARAMETERS, "leaf_estimation_iterations": 5},
+    {**BASELINE_PARAMETERS, "leaf_estimation_iterations": 10},
     {
         **BASELINE_PARAMETERS,
-        "depth": 4,
-        "l2_leaf_reg": 20,
-        "auto_class_weights": None,
+        "iterations": 500,
+        "learning_rate": 0.025,
+        "depth": 7,
+        "leaf_estimation_iterations": 3,
     },
     {
         **BASELINE_PARAMETERS,
-        "depth": 4,
-        "l2_leaf_reg": 20,
-        "random_strength": 2,
-        "bagging_temperature": 2,
+        "iterations": 500,
+        "depth": 7,
+        "l2_leaf_reg": 10,
+    },
+    {
+        **BASELINE_PARAMETERS,
+        "iterations": 600,
+        "learning_rate": 0.025,
+        "leaf_estimation_iterations": 3,
     },
 ]
 
@@ -88,6 +131,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--n-configs", type=int, default=len(CONFIGURATIONS))
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--task-type",
+        choices=["CPU", "GPU"],
+        default="GPU",
+    )
+    parser.add_argument("--devices", default="0")
     parser.add_argument("--thread-count", type=int, default=-1)
     return parser.parse_args()
 
@@ -104,8 +153,8 @@ def load_data(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
     test = pd.read_csv(test_path)
     sample_submission = pd.read_csv(sample_path)
 
-    required_train = set(MODEL_FEATURES + DROPPED_FEATURES + [TARGET])
-    required_test = set(MODEL_FEATURES + DROPPED_FEATURES + ["ID"])
+    required_train = set(RAW_MODEL_FEATURES + DROPPED_FEATURES + [TARGET])
+    required_test = set(RAW_MODEL_FEATURES + DROPPED_FEATURES + ["ID"])
     missing_train = sorted(required_train - set(train.columns))
     missing_test = sorted(required_test - set(test.columns))
     if missing_train:
@@ -116,16 +165,45 @@ def load_data(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
 
 def prepare_features(frame: pd.DataFrame) -> pd.DataFrame:
-    X = frame[MODEL_FEATURES].copy()
+    X = frame[RAW_MODEL_FEATURES].copy()
+    release_date = frame["track_album_release_date"].astype(str)
+    X["release_year"] = pd.to_numeric(
+        release_date.str.extract(r"(\d{4})", expand=False),
+        errors="coerce",
+    )
+    X["release_month"] = pd.to_numeric(
+        release_date.str.extract(r"^\d{4}-(\d{2})", expand=False),
+        errors="coerce",
+    )
+    X["release_day"] = pd.to_numeric(
+        release_date.str.extract(r"^\d{4}-\d{2}-(\d{2})", expand=False),
+        errors="coerce",
+    )
+    parsed_release_date = pd.to_datetime(
+        release_date,
+        format="mixed",
+        errors="coerce",
+    )
+    X["release_ordinal"] = (
+        parsed_release_date - pd.Timestamp("1950-01-01")
+    ).dt.days
+    X["release_precision"] = np.select(
+        [
+            release_date.str.match(r"^\d{4}$"),
+            release_date.str.match(r"^\d{4}-\d{2}$"),
+        ],
+        ["year", "month"],
+        default="day",
+    )
     for column in CATEGORICAL_FEATURES:
         X[column] = X[column].fillna("missing").astype(str)
-    return X
+    return X[MODEL_FEATURES]
 
 
 def prepare_training_data(
     train: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.Series, pd.Series, pd.Series, list[int]]:
-    valid_mask = train[MODEL_FEATURES].notna().any(axis=1)
+    valid_mask = train[RAW_MODEL_FEATURES].notna().any(axis=1)
     removed_source_rows = train.index[~valid_mask].astype(int).tolist()
     clean = train.loc[valid_mask].copy()
 
@@ -170,13 +248,21 @@ def build_model(
     parameters: dict[str, int | float | str | None],
     seed: int,
     thread_count: int,
+    task_type: str,
+    devices: str,
 ) -> CatBoostClassifier:
+    runtime_parameters = {
+        "task_type": task_type,
+        "thread_count": thread_count,
+    }
+    if task_type == "GPU":
+        runtime_parameters["devices"] = devices
     return CatBoostClassifier(
         **parameters,
+        **runtime_parameters,
         loss_function="Logloss",
         eval_metric="AUC",
         random_seed=seed,
-        thread_count=thread_count,
         verbose=False,
         allow_writing_files=False,
     )
@@ -196,17 +282,33 @@ def tune_model(
     configurations: list[dict[str, int | float | str | None]],
     seed: int,
     thread_count: int,
+    task_type: str,
+    devices: str,
     results_dir: Path,
 ) -> tuple[pd.DataFrame, dict[str, int | float | str | None]]:
-    rows: list[dict[str, int | float | str]] = []
+    checkpoint_path = results_dir / "tuning_checkpoint.csv"
+    if checkpoint_path.exists():
+        rows = pd.read_csv(checkpoint_path).to_dict("records")
+    else:
+        rows = []
+    completed = {int(row["configuration"]) for row in rows}
 
     for number, parameters in enumerate(configurations, start=1):
+        if number in completed:
+            print(f"{number}/{len(configurations)} resumed")
+            continue
         start = time.perf_counter()
         validation_scores: list[float] = []
         training_scores: list[float] = []
 
         for train_indices, validation_indices in splits:
-            model = build_model(parameters, seed, thread_count)
+            model = build_model(
+                parameters,
+                seed,
+                thread_count,
+                task_type,
+                devices,
+            )
             model.fit(
                 X.iloc[train_indices],
                 y.iloc[train_indices],
@@ -235,12 +337,19 @@ def tune_model(
                 "bagging_temperature": float(
                     parameters["bagging_temperature"]
                 ),
+                "boosting_type": str(parameters["boosting_type"]),
+                "border_count": int(parameters["border_count"]),
+                "one_hot_max_size": int(parameters["one_hot_max_size"]),
+                "leaf_estimation_iterations": int(
+                    parameters["leaf_estimation_iterations"]
+                ),
                 "mean_validation_auc": float(np.mean(validation_scores)),
                 "std_validation_auc": float(np.std(validation_scores, ddof=0)),
                 "mean_training_auc": float(np.mean(training_scores)),
                 "elapsed_seconds": time.perf_counter() - start,
             }
         )
+        pd.DataFrame(rows).to_csv(checkpoint_path, index=False)
         print(
             f"{number}/{len(configurations)} "
             f"AUC={np.mean(validation_scores):.6f}"
@@ -251,6 +360,7 @@ def tune_model(
     )
     results.insert(0, "rank", np.arange(1, len(results) + 1))
     results.to_csv(results_dir / "tuning_results.csv", index=False)
+    checkpoint_path.unlink(missing_ok=True)
 
     best_number = int(results.iloc[0]["configuration"])
     best_parameters = configurations[best_number - 1]
@@ -266,6 +376,8 @@ def evaluate_model(
     parameters: dict[str, int | float | str | None],
     seed: int,
     thread_count: int,
+    task_type: str,
+    devices: str,
     results_dir: Path,
 ) -> tuple[pd.DataFrame, np.ndarray]:
     oof_probability = np.full(len(y), np.nan)
@@ -273,7 +385,13 @@ def evaluate_model(
     curves: list[tuple[np.ndarray, np.ndarray, float]] = []
 
     for fold, (train_indices, validation_indices) in enumerate(splits, start=1):
-        model = build_model(parameters, seed, thread_count)
+        model = build_model(
+            parameters,
+            seed,
+            thread_count,
+            task_type,
+            devices,
+        )
         model.fit(
             X.iloc[train_indices],
             y.iloc[train_indices],
@@ -380,14 +498,21 @@ def plot_hyperparameter_effects(
         "auto_class_weights",
         "random_strength",
         "bagging_temperature",
+        "boosting_type",
+        "border_count",
+        "one_hot_max_size",
+        "leaf_estimation_iterations",
     ]
-    fig, axes = plt.subplots(3, 3, figsize=(15, 13))
+    fig, axes = plt.subplots(4, 3, figsize=(15, 17))
     for ax, parameter in zip(axes.flat, parameters):
         mask = pd.Series(True, index=results.index)
         for other_parameter in parameters:
             if other_parameter != parameter:
                 baseline_value = BASELINE_PARAMETERS[other_parameter]
-                if other_parameter == "auto_class_weights":
+                if other_parameter in {
+                    "auto_class_weights",
+                    "boosting_type",
+                }:
                     mask &= results[other_parameter].astype(str) == str(
                         baseline_value
                     )
@@ -468,12 +593,15 @@ def save_summary(
     y: pd.Series,
     removed_source_rows: list[int],
     feature_importance: pd.DataFrame,
+    task_type: str,
     results_dir: Path,
 ) -> None:
     summary = {
         "model": "CatBoostClassifier",
         "loss": "Logloss",
         "evaluation_metric": "AUC",
+        "task_type": task_type,
+        "engineered_features": ENGINEERED_FEATURES,
         "tuning": "3-fold StratifiedGroupKFold grouped by uri",
         "validation": "5-fold StratifiedGroupKFold grouped by uri",
         "best_parameters": parameters,
@@ -525,6 +653,8 @@ def main() -> None:
         configurations,
         args.seed,
         args.thread_count,
+        args.task_type,
+        args.devices,
         args.results_dir,
     )
     plot_tuning_results(tuning_results, args.results_dir)
@@ -539,10 +669,18 @@ def main() -> None:
         best_parameters,
         args.seed,
         args.thread_count,
+        args.task_type,
+        args.devices,
         args.results_dir,
     )
 
-    final_model = build_model(best_parameters, args.seed, args.thread_count)
+    final_model = build_model(
+        best_parameters,
+        args.seed,
+        args.thread_count,
+        args.task_type,
+        args.devices,
+    )
     final_model.fit(X, y, cat_features=CATEGORICAL_FEATURES)
     feature_importance = save_feature_importance(final_model, args.results_dir)
     plot_class_distribution(y, args.results_dir)
@@ -562,6 +700,7 @@ def main() -> None:
         y,
         removed_source_rows,
         feature_importance,
+        args.task_type,
         args.results_dir,
     )
 
