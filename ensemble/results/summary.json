@@ -1,0 +1,14 @@
+{
+  "models": [
+    "CatBoost",
+    "LightGBM"
+  ],
+  "method": "probability",
+  "catboost_weight": 0.4,
+  "lightgbm_weight": 0.6,
+  "catboost_oof_auc": 0.8261924408804633,
+  "lightgbm_oof_auc": 0.8287259883817972,
+  "ensemble_oof_auc": 0.8307148591686708,
+  "mean_fold_auc": 0.8317835632895708,
+  "std_fold_auc": 0.015431810920735187
+}

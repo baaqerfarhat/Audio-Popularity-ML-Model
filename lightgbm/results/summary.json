@@ -1,0 +1,49 @@
+{
+  "model": "LGBMClassifier",
+  "evaluation_metric": "AUC",
+  "engineered_features": [
+    "release_year",
+    "release_month",
+    "release_day",
+    "release_ordinal",
+    "release_precision"
+  ],
+  "tuning": "3-fold StratifiedGroupKFold grouped by uri",
+  "validation": "5-fold StratifiedGroupKFold grouped by uri",
+  "best_parameters": {
+    "subsample_freq": 1,
+    "subsample": 0.85,
+    "reg_lambda": 5.0,
+    "reg_alpha": 1.0,
+    "num_leaves": 31,
+    "n_estimators": 700,
+    "min_child_samples": 20,
+    "max_depth": 6,
+    "learning_rate": 0.02,
+    "colsample_bytree": 0.7,
+    "class_weight": "balanced"
+  },
+  "mean_validation_auc": 0.8299108662088779,
+  "std_validation_auc": 0.015590597461060481,
+  "training_rows_used": 3863,
+  "class_counts": {
+    "Low": 2504,
+    "High": 1359
+  },
+  "removed_zero_feature_source_rows": [
+    425
+  ],
+  "configurations_tested": 40,
+  "top_features": [
+    "release_ordinal",
+    "tempo",
+    "duration_ms",
+    "loudness",
+    "speechiness",
+    "danceability",
+    "valence",
+    "acousticness",
+    "energy",
+    "liveness"
+  ]
+}
