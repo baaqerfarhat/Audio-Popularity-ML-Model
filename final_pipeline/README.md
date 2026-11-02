@@ -12,6 +12,10 @@ The [L1 and combined L1 + L2 follow-up](experiments/l1_l2_regularization_2026_11
 tests four additional penalty settings. None beat the L2-only candidate, and all
 four slightly lowered the fixed-weight blend score relative to the baseline.
 
+The [track-error analysis](experiments/track_errors_2026_11_01/README.md) identifies
+407 consistently misclassified unique tracks, release-period and instrumentalness
+patterns, and 32 separate URIs with identical inputs but conflicting labels.
+
 `train.py` is self-contained (needs pandas, numpy, scipy, scikit-learn, lightgbm, xgboost, catboost, matplotlib).
 
 ```

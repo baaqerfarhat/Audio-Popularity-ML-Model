@@ -1,0 +1,21 @@
+{
+  "training_rows": 3863,
+  "unique_tracks": 3642,
+  "excluded_conflicting_uris": 32,
+  "conflicting_rows": 66,
+  "identical_input_conflicting_uris": 32,
+  "analyzed_tracks": 3610,
+  "predictions_per_track": 18,
+  "persistent_errors": 407,
+  "high_tracks": 1166,
+  "low_tracks": 2444,
+  "missed_high": 329,
+  "false_high": 78,
+  "all_confident_wrong": 46,
+  "consensus_unique_track_auc": 0.8549852897002637,
+  "source_hashes": {
+    "data\\train.csv": "88f90fdf3d77b999b32da05a3ad3fd2796893bfc161b945e7566e45fd59b7c7a",
+    "final_pipeline\\experiments\\bias_variance_2026_11_01\\oof_predictions.csv": "ab0e7f8bdfa0e490b52d6a2cc97f76535d0edc3bc0c2de8d1751c18986bffd5b",
+    "final_pipeline\\experiments\\bias_variance_2026_11_01\\fold_membership.csv": "9c0bac78ea61ddc7e8053c52dbbef3ae03cbd8bef19f8fe9f2906dbca2b50783"
+  }
+}

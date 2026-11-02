@@ -1,0 +1,10 @@
+{
+  "source_hashes": "matched",
+  "unique_track_counts": "reconciled",
+  "conflicting_labels": "32 URIs / 66 rows; all input fields identical within URI",
+  "persistent_examples": "all 20 checked directly against 18 predictions each",
+  "CSV_line_references": "checked for all 20 examples",
+  "pairwise_ranking_metric": "reconciles with sklearn AUC to 1e-12",
+  "metadata": "13 exact URIs resolved; names only, not used for training",
+  "training_data_changed": false
+}
