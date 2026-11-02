@@ -1,0 +1,12 @@
+{
+  "baseline": {
+    "auc": 0.8634746583538452,
+    "weighted_auc": 0.8477647709070882
+  },
+  "l2_0p1": {
+    "auc": 0.8635181502091135,
+    "weighted_auc": 0.8478327904350849
+  },
+  "weighted_delta": 6.801952799662114e-05,
+  "method": "Equal rank blend of five-seed mean probabilities; fixed 0.25 weights on LightGBM, ExtraTrees, base CatBoost, XGBoost. Exploratory; different aggregation from mean per-seed AUC."
+}

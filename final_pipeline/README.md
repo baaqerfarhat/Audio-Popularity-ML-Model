@@ -4,6 +4,10 @@ The [November 1 bias–variance diagnostics](experiments/bias_variance_2026_11_0
 compare training and validation scores, learning curves, and prediction stability.
 They preserve the production model settings and existing submissions.
 
+The follow-up [gentle regularization comparison](experiments/gentle_regularization_2026_11_01/README.md)
+tests six single-parameter changes over five seeds. L2=0.1 is a tentative candidate;
+its fixed-blend gain is tiny, so the default configuration remains unchanged.
+
 `train.py` is self-contained (needs pandas, numpy, scipy, scikit-learn, lightgbm, xgboost, catboost, matplotlib).
 
 ```

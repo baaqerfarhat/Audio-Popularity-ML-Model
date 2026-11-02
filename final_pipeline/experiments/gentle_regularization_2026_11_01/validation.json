@@ -1,0 +1,11 @@
+{
+  "fits": 175,
+  "seed_scores": 35,
+  "submissions_checked": 7,
+  "group_boundaries": "passed",
+  "independent_unweighted_auc": "all 35 seed scores matched",
+  "weighted_auc": "recomputed all 35 seed scores",
+  "baseline_reproduction": "all 25 folds match previous run to 1e-12",
+  "input_hashes": "unchanged",
+  "one_parameter_per_candidate": true
+}

@@ -1,0 +1,43 @@
+seed 0 baseline: AUC=0.857846, weighted=0.841938
+seed 0 leaves_16: AUC=0.856561, weighted=0.840687
+seed 0 depth_5: AUC=0.856619, weighted=0.840788
+seed 0 min_leaf_20: AUC=0.856094, weighted=0.840224
+seed 0 min_leaf_30: AUC=0.855936, weighted=0.839819
+seed 0 l2_0p1: AUC=0.857755, weighted=0.842010
+seed 0 l2_1: AUC=0.856593, weighted=0.840637
+seed 1 baseline: AUC=0.856006, weighted=0.839487
+seed 1 leaves_16: AUC=0.855193, weighted=0.838321
+seed 1 depth_5: AUC=0.857427, weighted=0.840864
+seed 1 min_leaf_20: AUC=0.855298, weighted=0.838496
+seed 1 min_leaf_30: AUC=0.853685, weighted=0.836970
+seed 1 l2_0p1: AUC=0.855641, weighted=0.839360
+seed 1 l2_1: AUC=0.856268, weighted=0.839365
+seed 2 baseline: AUC=0.857256, weighted=0.840811
+seed 2 leaves_16: AUC=0.858653, weighted=0.842409
+seed 2 depth_5: AUC=0.857583, weighted=0.841427
+seed 2 min_leaf_20: AUC=0.856947, weighted=0.840441
+seed 2 min_leaf_30: AUC=0.854375, weighted=0.837492
+seed 2 l2_0p1: AUC=0.858983, weighted=0.842629
+seed 2 l2_1: AUC=0.857761, weighted=0.841309
+seed 3 baseline: AUC=0.858469, weighted=0.842108
+seed 3 leaves_16: AUC=0.857736, weighted=0.841529
+seed 3 depth_5: AUC=0.858449, weighted=0.842327
+seed 3 min_leaf_20: AUC=0.857436, weighted=0.840943
+seed 3 min_leaf_30: AUC=0.856516, weighted=0.840105
+seed 3 l2_0p1: AUC=0.857714, weighted=0.841275
+seed 3 l2_1: AUC=0.857921, weighted=0.841366
+seed 4 baseline: AUC=0.853744, weighted=0.837077
+seed 4 leaves_16: AUC=0.854498, weighted=0.837023
+seed 4 depth_5: AUC=0.853493, weighted=0.836300
+seed 4 min_leaf_20: AUC=0.853114, weighted=0.836322
+seed 4 min_leaf_30: AUC=0.852861, weighted=0.835492
+seed 4 l2_0p1: AUC=0.854484, weighted=0.837953
+seed 4 l2_1: AUC=0.854650, weighted=0.837331
+  candidate  oof_auc  weighted_oof_auc  weighted_delta  weighted_seed_wins  min_seed_weighted_delta  max_seed_weighted_delta  train_auc  validation_fold_auc  auc_gap  logloss
+   baseline 0.856664          0.840284        0.000000                   0                 0.000000                 0.000000   0.970273             0.857290 0.112983 0.439530
+  leaves_16 0.856528          0.839994       -0.000290                   1                -0.001250                 0.001598   0.957977             0.857071 0.100907 0.439187
+    depth_5 0.856714          0.840341        0.000057                   3                -0.001150                 0.001377   0.960561             0.857262 0.103299 0.439234
+min_leaf_20 0.855778          0.839285       -0.000999                   0                -0.001713                -0.000370   0.960769             0.856337 0.104432 0.440909
+min_leaf_30 0.854675          0.837976       -0.002308                   0                -0.003318                -0.001584   0.950084             0.855407 0.094678 0.442841
+     l2_0p1 0.856915          0.840645        0.000362                   3                -0.000833                 0.001818   0.968448             0.857528 0.110920 0.439304
+       l2_1 0.856639          0.840001       -0.000283                   2                -0.001301                 0.000498   0.957277             0.857196 0.100081 0.439434
