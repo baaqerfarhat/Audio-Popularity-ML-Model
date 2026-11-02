@@ -102,7 +102,7 @@ Artifacts: predictions.npz contains per-seed OOF/test arrays, labels, weights, s
 
 Reproduce from repository root with `.venv/Scripts/python.exe final_pipeline/nn_instrumental.py --out <fresh-directory>`. Dependencies are pinned in `final_pipeline/nn-requirements-lock.txt`; install CPU torch from https://download.pytorch.org/whl/cpu. The report script targets the dated experiment directory. Four focused unit tests and post-run checks cover group separation, query-label/statistic isolation, prediction ordering, zero-initialized residuals, masked routing, gradients, finite outputs and pairwise AUC reconciliation.
 '''
-    (out/'REPORT.md').write_text(report,encoding='utf-8')
+    (out/'REPORT.md').write_text('\n'.join(line.rstrip() for line in report.splitlines())+'\n',encoding='utf-8')
     print(summary.to_string()); print(ensemble.to_string(index=False)); print(gaps.to_string())
 
 

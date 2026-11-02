@@ -14,7 +14,7 @@ All imputation, scaling and category learning use permitted training rows only. 
 
 ```
                                     auc  weighted_auc  logloss    brier  high_miss_rate
-model             group                                                                
+model             group
 global            instrumental 0.730136      0.721294 0.198296 0.049492        0.931915
                   other        0.770071      0.764629 0.567291 0.192037        0.396799
                   overall      0.822037      0.819381 0.488200 0.161484        0.415305
@@ -29,7 +29,7 @@ Overall head-minus-global weighted AUC: -0.001885; wins in 0/5 seeds. These over
 
 ```
                    train_auc  validation_auc    epochs  auc_gap
-model                                                          
+model
 global              0.867649        0.823225 18.680000 0.044424
 instrumental_head   0.863867        0.821552 19.680000 0.042315
 ```
