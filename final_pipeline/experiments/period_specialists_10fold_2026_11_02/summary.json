@@ -1,0 +1,55 @@
+{
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "n_folds": 10,
+  "feature_set": "v2",
+  "et_config": "base",
+  "specialists": [
+    "lgb_tuned"
+  ],
+  "period_cut": 2020,
+  "specialist_weight_global": 0.5,
+  "models": {
+    "lgb_tuned": {
+      "oof_auc": 0.8597789673387922,
+      "test_like_auc": 0.8435409784700869
+    },
+    "xgb_tuned": {
+      "oof_auc": 0.8591428107963243,
+      "test_like_auc": 0.843485123270928
+    },
+    "cat_base": {
+      "oof_auc": 0.8581749994710451,
+      "test_like_auc": 0.8412504152889673
+    },
+    "extra_trees": {
+      "oof_auc": 0.8548672381731539,
+      "test_like_auc": 0.837483587416734
+    },
+    "lgb_tuned__specialist": {
+      "oof_auc": 0.8570372760463318,
+      "test_like_auc": 0.8407976014481477
+    },
+    "lgb_tuned__mix": {
+      "oof_auc": 0.8603935542719581,
+      "test_like_auc": 0.8443970641601009
+    }
+  },
+  "blend": {
+    "weights": {
+      "lgb_tuned__mix": 0.4,
+      "xgb_tuned": 0.2,
+      "extra_trees": 0.2,
+      "cat_base": 0.2
+    },
+    "oof_auc": 0.8624856888287056,
+    "test_like_auc": 0.8464010902513458,
+    "equal_weight_oof_auc": 0.8623724924594527,
+    "equal_weight_test_like_auc": 0.8463192641422186
+  }
+}

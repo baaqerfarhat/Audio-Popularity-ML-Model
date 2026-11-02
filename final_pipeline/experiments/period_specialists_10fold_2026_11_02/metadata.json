@@ -1,0 +1,57 @@
+{
+  "run": "period_specialists_10fold_2026_11_02",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "n_folds": 10,
+  "feature_set": "v2",
+  "et_config": "base",
+  "specialised_model": "lgb_tuned",
+  "period_cut": 2020,
+  "specialist_weight_global": 0.5,
+  "unknown_date_policy": "global fallback",
+  "fixed_blend_members": [
+    "lgb_tuned",
+    "xgb_tuned",
+    "cat_base",
+    "extra_trees"
+  ],
+  "fixed_blend_weights": [
+    0.25,
+    0.25,
+    0.25,
+    0.25
+  ],
+  "primary_metric": "mean per-seed weighted (test-like) OOF AUC",
+  "early_stopping": "none (fixed iteration counts)",
+  "source_commit": "unavailable",
+  "sha256": {
+    "train.py": "eba087b16657b46e2a76cc87f567eea5d5645e420819b70aab3a8ce97c130679",
+    "evaluate_period_specialists.py": "884ba2a76025ed166cbc745132e6fc2b46e9ea313dec4faca7237d0522566541",
+    "test_period_specialists.py": "34822b9c34fd3a285e0b6ec6edffc44ed3a765212bd351bd4b7f8409e1e2767b",
+    "tuned_lgb.json": "10e42ed58cc8b5894b5ed3479b5db2dee49c4cc6e29ecafdde493a35c1361ae8",
+    "tuned_xgb.json": "d2c72b8738cd9bb9980da1851ac079afc81b31eb3fa8e604e0c8524b4fa2e402",
+    "tuned_cat.json": "b7f27d07f7cb6266689387776335381a2546f4f34742e8e6759d210bc6a66e54"
+  },
+  "cohorts": {
+    "before_2020": {
+      "train_rows": 1483,
+      "high_rows": 752,
+      "test_rows": 310
+    },
+    "2020_onward": {
+      "train_rows": 2380,
+      "high_rows": 607,
+      "test_rows": 553
+    },
+    "unknown": {
+      "train_rows": 0,
+      "high_rows": 0,
+      "test_rows": 0
+    }
+  }
+}

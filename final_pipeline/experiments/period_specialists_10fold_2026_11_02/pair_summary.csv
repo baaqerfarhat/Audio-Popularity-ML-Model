@@ -1,0 +1,13 @@
+variant,positive_period,negative_period,weighted_pair_auc
+global,before_2020,before_2020,0.8246701900625331
+global,before_2020,2020_onward,0.9350179652298453
+global,2020_onward,before_2020,0.6248721997153046
+global,2020_onward,2020_onward,0.8209349018851029
+specialist,before_2020,before_2020,0.8170347773774846
+specialist,before_2020,2020_onward,0.9354196930410777
+specialist,2020_onward,before_2020,0.6131944420848618
+specialist,2020_onward,2020_onward,0.8203765272342551
+mix,before_2020,before_2020,0.8234673116166501
+mix,before_2020,2020_onward,0.9375714314761346
+mix,2020_onward,before_2020,0.6201633739694684
+mix,2020_onward,2020_onward,0.8229524540321107
