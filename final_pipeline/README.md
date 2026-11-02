@@ -59,3 +59,20 @@ True AUC of the blend ≈0.845. On a 345-row public board that is 0.845 ± 0.02,
 "normal"; 0.90 would need +2.5 standard errors of luck. The final ranking uses the other 60% (518 rows, ±0.017).
 Select two uncorrelated-as-possible but strong entries: `submission_blend.csv` and `submission_equal_rank_avg.csv`
 (or the best public-scoring single model).
+
+## Release-period specialists (integrated 2026-11-02, off by default)
+
+`train.py --specialists lgb_tuned` additionally trains one LightGBM per release period (year < 2020 / >= 2020,
+same hyperparameters; label-derived features rebuilt from the period's own training rows with grouped inner
+cross-fitting; unknown year -> global) and writes `<model>__specialist` (routed) and `<model>__mix`
+(0.5 global + 0.5 specialist) variants. `--feature-set v2 --et-config base` reproduce the 0.870-public
+configuration exactly. `evaluate_period_specialists.py` makes the paired comparison;
+`test_period_specialists.py` covers the 2020 boundary, missing-date fallback, routing, group separation and
+output alignment (`python -m unittest test_period_specialists -v`).
+
+Matched result on the 10-fold x 5-seed pipeline (`experiments/period_specialists_10fold_2026_11_02/RESULTS.md`):
+the 50/50 mix lifts the LightGBM component by +0.0009 weighted OOF AUC (4/5 seeds; +0.0020 on 2020-onward
+tracks, -0.0012 on older tracks, and the recent-High-vs-old-Low pair block gets worse), specialists alone are
+-0.0027 (0/5). With the four ensemble weights held fixed at 0.25 the gain shrinks to +0.0002 (mix) /
++0.0001 (specialist alone). That is far inside leaderboard noise, so the baseline stays the default;
+`submission_fixed_blend_mix.csv` is kept as a candidate. Exploratory: validation splits were reused.
