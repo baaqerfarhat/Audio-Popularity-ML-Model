@@ -72,7 +72,32 @@ def build_static_features(tr, te):
     cnt = alld.groupby("track_album_release_date")["uri"].count()
     parts_tr.append(tr["track_album_release_date"].map(cnt).rename("date_group_size").to_frame())
     parts_te.append(te["track_album_release_date"].map(cnt).rename("date_group_size").to_frame())
-    return pd.concat(parts_tr, axis=1), pd.concat(parts_te, axis=1)
+    # near-duplicate recordings: the same song re-released under another uri (label-free, train+test)
+    nd = near_duplicate_counts(pd.concat([tr, te], ignore_index=True))
+    tr_nd, te_nd = tr["uri"].map(nd).fillna(0).values, te["uri"].map(nd).fillna(0).values
+    X_tr, X_te = pd.concat(parts_tr, axis=1), pd.concat(parts_te, axis=1)
+    X_tr["near_dup"], X_te["near_dup"] = tr_nd, te_nd
+    X_tr["any_dup"] = ((tr_nd > 0) | (X_tr["uri_count"] > 1)).astype(int)
+    X_te["any_dup"] = ((te_nd > 0) | (X_te["uri_count"] > 1)).astype(int)
+    return X_tr, X_te
+
+
+def near_duplicate_counts(allrows):
+    """For each distinct uri: number of OTHER distinct tracks with the same key/mode/time_signature whose
+    duration (<1.5 s), tempo (<1 BPM), loudness (<1 dB), danceability and energy (<0.05) all match."""
+    u = allrows.drop_duplicates("uri").reset_index(drop=True)
+    cnt = np.zeros(len(u), dtype=int)
+    for _, idx in u.groupby(["key", "mode", "time_signature"]).indices.items():
+        idx = np.array(idx)
+        if len(idx) < 2:
+            continue
+        d = u.iloc[idx]
+        dur, tempo, loud, dance, energy = (d[c].values for c in ["duration_ms", "tempo", "loudness", "danceability", "energy"])
+        for a in range(len(idx)):
+            m = (np.abs(dur - dur[a]) < 1500) & (np.abs(tempo - tempo[a]) < 1.0) & (np.abs(loud - loud[a]) < 1.0) & \
+                (np.abs(dance - dance[a]) < 0.05) & (np.abs(energy - energy[a]) < 0.05)
+            cnt[idx[a]] = m.sum() - 1
+    return pd.Series(cnt, index=u["uri"].values)
 
 
 def te_map(fit_keys, fit_y, apply_keys, prior_w=3.0):
@@ -190,7 +215,7 @@ def get_models(task_type):
         "cat_tuned": cat_model(CAT_TUNED, task_type),
         "cat_base": cat_model(dict(iterations=800, learning_rate=0.03, depth=6, l2_leaf_reg=5, random_strength=1,
                                    bootstrap_type="Bayesian", bagging_temperature=0.5, border_count=128), task_type),
-        "extra_trees": et_model(dict(n_estimators=800, min_samples_leaf=3, max_features=0.5)),
+        "extra_trees": et_model(ET_TUNED),
     }
 
 
@@ -201,6 +226,7 @@ XGB_TUNED = dict(n_estimators=600, learning_rate=0.02, max_depth=4, min_child_we
                  colsample_bytree=0.7, reg_lambda=2.0, gamma=0.1)
 CAT_TUNED = dict(iterations=1200, learning_rate=0.03, depth=4, l2_leaf_reg=3, random_strength=1,
                  bootstrap_type="Bernoulli", subsample=0.8, border_count=254)
+ET_TUNED = dict(n_estimators=800, min_samples_leaf=3, max_features=0.5)
 
 # ----------------------------------------------------------------------------- main
 
@@ -219,7 +245,7 @@ def main():
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     here = os.path.dirname(os.path.abspath(__file__))
-    for fam, store in (("lgb", LGB_TUNED), ("xgb", XGB_TUNED), ("cat", CAT_TUNED)):
+    for fam, store in (("lgb", LGB_TUNED), ("xgb", XGB_TUNED), ("cat", CAT_TUNED), ("et", ET_TUNED)):
         p = os.path.join(here, f"tuned_{fam}.json")
         if os.path.exists(p):
             store.clear(); store.update(json.load(open(p)))
