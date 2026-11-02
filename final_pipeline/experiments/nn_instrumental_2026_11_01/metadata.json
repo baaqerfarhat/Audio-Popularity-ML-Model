@@ -1,0 +1,43 @@
+{
+  "config": {
+    "hidden": [
+      64,
+      32
+    ],
+    "dropout": 0.1,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 256,
+    "max_epochs": 150,
+    "patience": 15,
+    "min_delta": 0.0001,
+    "instrumental_loss_weight": 0.25,
+    "residual_penalty": 0.01,
+    "ensemble_nn_weight": 0.1
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "folds": 5,
+  "torch_version": "2.9.0+cpu",
+  "source_commit": "8eec6234d7735e18515c3d9d50a54be18dc74655",
+  "sha256": {
+    "final_pipeline\\nn_instrumental.py": "dff30b02faa84c01f1a9bf8dedb1a3d282c026cd1e45a0f85833e79222b1aa41",
+    "final_pipeline\\train.py": "fa11fe8569ba93fb0a848f0822dd4695af7497f20a1a1c375eedb4054ebe75a9",
+    "final_pipeline\\nn-requirements-lock.txt": "8b47377ce397a688653b5841c8994bdf9900e8069d670226f11aae083e3ac82f",
+    "data\\train.csv": "88f90fdf3d77b999b32da05a3ad3fd2796893bfc161b945e7566e45fd59b7c7a",
+    "data\\test.csv": "a2bceb0409465d446e1b4a05a3363d3d3f3982a8c8168fc4eaec8eac3b06d6dd"
+  },
+  "primary_metric": "mean per-seed weighted OOF AUC",
+  "early_stopping": "first inner grouped 5-fold split; fresh full outer-train refit",
+  "features": "audio, interactions, dates, one-hot musical attributes, grouped crossfit date TE and audio-only date KNN; no file-level counts",
+  "preprocessing": "fit exclusively on permitted training rows; no test statistics",
+  "instrumental_threshold": 0.5,
+  "caveat": "Exploratory: these outer splits have been reused for previous experiments.",
+  "final_runner_sha256": "b9cebb7ed92eb2a1c867b095d6e6d68c1670eaa82bce1bfea3150ab4d3748f60",
+  "postprocessing_note": "Final runner corrects submission ID formatting and exports fixed test blends; fitting code is unchanged from the recorded run-time hash. Report script regenerates these exports from saved predictions."
+}
