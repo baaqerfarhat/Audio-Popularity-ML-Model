@@ -1,0 +1,49 @@
+{
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "knn_features": "audio-musical",
+  "threads": 6,
+  "models": {
+    "lgb_tuned": {
+      "oof_auc": 0.8565854309337585,
+      "test_like_auc": 0.8401945226271081
+    },
+    "lgb_deep": {
+      "oof_auc": 0.8539308996701672,
+      "test_like_auc": 0.837654880758306
+    },
+    "xgb_tuned": {
+      "oof_auc": 0.8555492080955975,
+      "test_like_auc": 0.8401013462598049
+    },
+    "cat_tuned": {
+      "oof_auc": 0.8561637950287633,
+      "test_like_auc": 0.839266369943015
+    },
+    "cat_base": {
+      "oof_auc": 0.8546797823996691,
+      "test_like_auc": 0.8376733317744834
+    },
+    "extra_trees": {
+      "oof_auc": 0.8526391915686924,
+      "test_like_auc": 0.8353006876519864
+    }
+  },
+  "blend": {
+    "weights": {
+      "lgb_tuned": 0.25,
+      "extra_trees": 0.25,
+      "cat_base": 0.25,
+      "xgb_tuned": 0.25
+    },
+    "oof_auc": 0.8593354385742196,
+    "test_like_auc": 0.8430933983762706,
+    "equal_weight_oof_auc": 0.8591195955492552,
+    "equal_weight_test_like_auc": 0.8428590288778552
+  }
+}

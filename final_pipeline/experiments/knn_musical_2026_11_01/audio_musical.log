@@ -1,0 +1,85 @@
+loaded tuned params for lgb: {'n_estimators': 1400, 'learning_rate': 0.010425322753516588, 'num_leaves': 22, 'max_depth': 6, 'min_child_samples': 11, 'subsample': 0.5552023046195264, 'colsample_bytree': 0.5720938881088363, 'reg_alpha': 0.001588888980185433, 'reg_lambda': 0.0029158775749992126, 'min_split_gain': 0.024453802531449877, 'extra_trees': True, 'subsample_freq': 1}
+loaded tuned params for xgb: {'n_estimators': 800, 'learning_rate': 0.009001416044940976, 'max_depth': 8, 'min_child_weight': 2.455297752945145, 'subsample': 0.6444839011143386, 'colsample_bytree': 0.42155173880638486, 'colsample_bynode': 0.8416675283601944, 'reg_alpha': 0.4578655631243604, 'reg_lambda': 0.2705944540049714, 'gamma': 0.7866098305418372}
+loaded tuned params for cat: {'iterations': 1600, 'learning_rate': 0.010049689586829709, 'depth': 6, 'l2_leaf_reg': 13.40749514183105, 'random_strength': 2.6609096590219097, 'subsample': 0.8246844660795689, 'border_count': 64, 'rsm': 0.31547983222494846, 'min_data_in_leaf': 3, 'bootstrap_type': 'Bernoulli'}
+train (3863, 36), test (863, 36), positives 0.352
+seed 0 lgb_tuned    OOF AUC=0.8562 test-like=0.8405 [2s]
+seed 0 lgb_deep     OOF AUC=0.8533 test-like=0.8378 [1s]
+seed 0 xgb_tuned    OOF AUC=0.8546 test-like=0.8399 [3s]
+seed 0 cat_tuned    OOF AUC=0.8567 test-like=0.8405 [44s]
+seed 0 cat_base     OOF AUC=0.8547 test-like=0.8379 [46s]
+seed 0 extra_trees  OOF AUC=0.8514 test-like=0.8344 [6s]
+seed 1 lgb_tuned    OOF AUC=0.8563 test-like=0.8397 [2s]
+seed 1 lgb_deep     OOF AUC=0.8530 test-like=0.8369 [2s]
+seed 1 xgb_tuned    OOF AUC=0.8552 test-like=0.8398 [3s]
+seed 1 cat_tuned    OOF AUC=0.8559 test-like=0.8386 [50s]
+seed 1 cat_base     OOF AUC=0.8553 test-like=0.8385 [41s]
+seed 1 extra_trees  OOF AUC=0.8524 test-like=0.8345 [6s]
+seed 2 lgb_tuned    OOF AUC=0.8581 test-like=0.8419 [2s]
+seed 2 lgb_deep     OOF AUC=0.8570 test-like=0.8413 [2s]
+seed 2 xgb_tuned    OOF AUC=0.8573 test-like=0.8424 [3s]
+seed 2 cat_tuned    OOF AUC=0.8560 test-like=0.8391 [44s]
+seed 2 cat_base     OOF AUC=0.8549 test-like=0.8381 [41s]
+seed 2 extra_trees  OOF AUC=0.8548 test-like=0.8374 [6s]
+seed 3 lgb_tuned    OOF AUC=0.8589 test-like=0.8425 [2s]
+seed 3 lgb_deep     OOF AUC=0.8541 test-like=0.8372 [2s]
+seed 3 xgb_tuned    OOF AUC=0.8569 test-like=0.8408 [3s]
+seed 3 cat_tuned    OOF AUC=0.8573 test-like=0.8406 [44s]
+seed 3 cat_base     OOF AUC=0.8559 test-like=0.8394 [40s]
+seed 3 extra_trees  OOF AUC=0.8539 test-like=0.8372 [5s]
+seed 4 lgb_tuned    OOF AUC=0.8535 test-like=0.8364 [3s]
+seed 4 lgb_deep     OOF AUC=0.8523 test-like=0.8351 [2s]
+seed 4 xgb_tuned    OOF AUC=0.8537 test-like=0.8375 [3s]
+seed 4 cat_tuned    OOF AUC=0.8549 test-like=0.8376 [44s]
+seed 4 cat_base     OOF AUC=0.8525 test-like=0.8345 [40s]
+seed 4 extra_trees  OOF AUC=0.8506 test-like=0.8330 [6s]
+blend weights: {'lgb_tuned': 0.25, 'extra_trees': 0.25, 'cat_base': 0.25, 'xgb_tuned': 0.25}
+blend OOF AUC 0.8593 test-like 0.8431
+{
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4
+ ],
+ "knn_features": "audio-musical",
+ "threads": 6,
+ "models": {
+  "lgb_tuned": {
+   "oof_auc": 0.8565854309337585,
+   "test_like_auc": 0.8401945226271081
+  },
+  "lgb_deep": {
+   "oof_auc": 0.8539308996701672,
+   "test_like_auc": 0.837654880758306
+  },
+  "xgb_tuned": {
+   "oof_auc": 0.8555492080955975,
+   "test_like_auc": 0.8401013462598049
+  },
+  "cat_tuned": {
+   "oof_auc": 0.8561637950287633,
+   "test_like_auc": 0.839266369943015
+  },
+  "cat_base": {
+   "oof_auc": 0.8546797823996691,
+   "test_like_auc": 0.8376733317744834
+  },
+  "extra_trees": {
+   "oof_auc": 0.8526391915686924,
+   "test_like_auc": 0.8353006876519864
+  }
+ },
+ "blend": {
+  "weights": {
+   "lgb_tuned": 0.25,
+   "extra_trees": 0.25,
+   "cat_base": 0.25,
+   "xgb_tuned": 0.25
+  },
+  "oof_auc": 0.8593354385742196,
+  "test_like_auc": 0.8430933983762706,
+  "equal_weight_oof_auc": 0.8591195955492552,
+  "equal_weight_test_like_auc": 0.8428590288778552
+ }
+}

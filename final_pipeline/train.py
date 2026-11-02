@@ -2,7 +2,8 @@
 
 Grouped (by uri) stratified 5-fold CV repeated over several seeds; feature engineering that adds
 (1) release-date features, (2) uri_count (track multiplicity), (3) album-level signal via
-out-of-fold target encoding of the exact release date and a same-date kNN label mean;
+out-of-fold target encoding of the exact release date and a same-date kNN label mean
+using audio features plus key, mode, and time signature (optional audio-only baseline);
 GBDT model zoo + ExtraTrees; rank-average blend. Writes submissions + diagnostics.
 
 Run:  python train.py --data-dir ../data --out results --seeds 0,1,2,3,4
@@ -118,14 +119,30 @@ def knn_date(Xa_fit, date_fit, y_fit, Xa_ap, date_ap, exclude_self=False, k=5, p
     return out_mean, out_dist
 
 
-def fold_matrices(X, Xte, tr, te, y, folds, seed):
+def knn_coordinates(tr, te, musical=True):
+    """Standardized audio plus equally weighted categorical musical attributes.
+
+    Each one-hot block is scaled by 1/sqrt(2), so a mismatch in one attribute
+    adds exactly 1 to squared Euclidean distance. Unknowns have their own category.
+    Audio scaling retains the original train+test, label-free convention.
+    """
+    all_rows = pd.concat([tr, te], ignore_index=True)
+    audio = all_rows[KNN_SPACE].copy()
+    audio = audio.assign(duration_ms=np.log1p(audio["duration_ms"]),
+                         instrumentalness=np.log10(audio["instrumentalness"] + 1e-6))
+    coordinates = ((audio - audio.mean()) / audio.std()).fillna(0).to_numpy()
+    if musical:
+        attrs = all_rows[CATS].fillna(-1).astype(int).astype(str)
+        encoded = pd.get_dummies(attrs, columns=CATS, dtype=float).to_numpy() / np.sqrt(2.0)
+        coordinates = np.column_stack([coordinates, encoded])
+    return coordinates[:len(tr)], coordinates[len(tr):]
+
+
+def fold_matrices(X, Xte, tr, te, y, folds, seed, knn_musical=True):
     """Per fold: (Xtr, Xva, Xtest) with label-derived features computed strictly from the fold's training part."""
     dates = tr["track_album_release_date"].astype(str).values; dates_te = te["track_album_release_date"].astype(str).values
     uris = tr["uri"].values
-    Xa_all = pd.concat([tr[KNN_SPACE], te[KNN_SPACE]])
-    Xa_all = Xa_all.assign(duration_ms=np.log1p(Xa_all["duration_ms"]), instrumentalness=np.log10(Xa_all["instrumentalness"] + 1e-6))
-    mu, sd = Xa_all.mean(), Xa_all.std()
-    Xa = ((Xa_all.iloc[:len(tr)] - mu) / sd).fillna(0).values; Xa_te = ((Xa_all.iloc[len(tr):] - mu) / sd).fillna(0).values
+    Xa, Xa_te = knn_coordinates(tr, te, musical=knn_musical)
     mats = []
     for fi, (tri, vai) in enumerate(folds):
         Xtr, Xva, Xt = X.iloc[tri].copy(), X.iloc[vai].copy(), Xte.copy()
@@ -141,23 +158,23 @@ def fold_matrices(X, Xte, tr, te, y, folds, seed):
 
 # ----------------------------------------------------------------------------- models
 
-def lgb_model(params):
+def lgb_model(params, threads=-1):
     import lightgbm as lgb
     def f(Xtr, ytr, Xva, Xte, seed):
-        m = lgb.LGBMClassifier(random_state=seed, verbose=-1, n_jobs=-1, **params).fit(Xtr, ytr)
+        m = lgb.LGBMClassifier(random_state=seed, verbose=-1, n_jobs=threads, **params).fit(Xtr, ytr)
         return m.predict_proba(Xva)[:, 1], m.predict_proba(Xte)[:, 1], m
     return f
 
 
-def xgb_model(params):
+def xgb_model(params, threads=-1):
     from xgboost import XGBClassifier
     def f(Xtr, ytr, Xva, Xte, seed):
-        m = XGBClassifier(random_state=seed, n_jobs=-1, tree_method="hist", **params).fit(Xtr, ytr)
+        m = XGBClassifier(random_state=seed, n_jobs=threads, tree_method="hist", **params).fit(Xtr, ytr)
         return m.predict_proba(Xva)[:, 1], m.predict_proba(Xte)[:, 1], m
     return f
 
 
-def cat_model(params, task_type="CPU"):
+def cat_model(params, task_type="CPU", threads=-1):
     from catboost import CatBoostClassifier
     def f(Xtr, ytr, Xva, Xte, seed):
         Xtr, Xva, Xte = Xtr.copy(), Xva.copy(), Xte.copy()
@@ -165,32 +182,32 @@ def cat_model(params, task_type="CPU"):
             for d in (Xtr, Xva, Xte):
                 d[c] = d[c].fillna(-1).astype(int).astype(str)
         m = CatBoostClassifier(random_seed=seed, verbose=False, allow_writing_files=False, task_type=task_type,
-                               loss_function="Logloss", **params)
+                               loss_function="Logloss", thread_count=threads, **params)
         m.fit(Xtr, ytr, cat_features=CATS)
         return m.predict_proba(Xva)[:, 1], m.predict_proba(Xte)[:, 1], m
     return f
 
 
-def et_model(params):
+def et_model(params, threads=-1):
     from sklearn.ensemble import ExtraTreesClassifier
     from sklearn.impute import SimpleImputer
     def f(Xtr, ytr, Xva, Xte, seed):
         imp = SimpleImputer(strategy="median").fit(Xtr)
-        m = ExtraTreesClassifier(random_state=seed, n_jobs=-1, **params).fit(imp.transform(Xtr), ytr)
+        m = ExtraTreesClassifier(random_state=seed, n_jobs=threads, **params).fit(imp.transform(Xtr), ytr)
         return m.predict_proba(imp.transform(Xva))[:, 1], m.predict_proba(imp.transform(Xte))[:, 1], m
     return f
 
 
-def get_models(task_type):
+def get_models(task_type, threads=-1):
     return {
-        "lgb_tuned": lgb_model(LGB_TUNED),
+        "lgb_tuned": lgb_model(LGB_TUNED, threads),
         "lgb_deep": lgb_model(dict(n_estimators=500, learning_rate=0.02, num_leaves=31, max_depth=-1, min_child_samples=15,
-                                   subsample=0.8, subsample_freq=1, colsample_bytree=0.6, reg_alpha=0.0, reg_lambda=2.0)),
-        "xgb_tuned": xgb_model(XGB_TUNED),
-        "cat_tuned": cat_model(CAT_TUNED, task_type),
+                                   subsample=0.8, subsample_freq=1, colsample_bytree=0.6, reg_alpha=0.0, reg_lambda=2.0), threads),
+        "xgb_tuned": xgb_model(XGB_TUNED, threads),
+        "cat_tuned": cat_model(CAT_TUNED, task_type, threads),
         "cat_base": cat_model(dict(iterations=800, learning_rate=0.03, depth=6, l2_leaf_reg=5, random_strength=1,
-                                   bootstrap_type="Bayesian", bagging_temperature=0.5, border_count=128), task_type),
-        "extra_trees": et_model(dict(n_estimators=800, min_samples_leaf=3, max_features=0.5)),
+                                   bootstrap_type="Bayesian", bagging_temperature=0.5, border_count=128), task_type, threads),
+        "extra_trees": et_model(dict(n_estimators=800, min_samples_leaf=3, max_features=0.5), threads),
     }
 
 
@@ -215,6 +232,8 @@ def main():
     ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--models", default="lgb_tuned,lgb_deep,xgb_tuned,cat_tuned,cat_base,extra_trees")
     ap.add_argument("--task-type", default="CPU", choices=["CPU", "GPU"])
+    ap.add_argument("--knn-features", default="audio", choices=["audio", "audio-musical"])
+    ap.add_argument("--threads", type=int, default=6, help="Threads per model (-1 uses all cores).")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     here = os.path.dirname(os.path.abspath(__file__))
@@ -238,14 +257,14 @@ def main():
     cnt = X["uri_count"].values; dup = cnt > 1
     W = np.where(dup, (22 / 863) / (1 - 22 / 863) * (np.sum(~dup) / np.sum(dup)), 1.0)
 
-    models = {k: v for k, v in get_models(args.task_type).items() if k in args.models.split(",")}
+    models = {k: v for k, v in get_models(args.task_type, args.threads).items() if k in args.models.split(",")}
     oof = {m: np.zeros((len(seeds), len(y))) for m in models}
     tst = {m: np.zeros((len(seeds), len(te))) for m in models}
     importances = {}
     fold_rows = []
     for si, seed in enumerate(seeds):
         folds = list(StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=seed).split(X, y, groups=tr["uri"]))
-        mats = fold_matrices(X, Xte, tr, te, y, folds, seed)
+        mats = fold_matrices(X, Xte, tr, te, y, folds, seed, knn_musical=args.knn_features == "audio-musical")
         for name, fp in models.items():
             t0 = time.time()
             for fi, (tri, vai) in enumerate(folds):
@@ -259,7 +278,7 @@ def main():
             print(f"seed {seed} {name:12s} OOF AUC={a:.4f} test-like={aw:.4f} [{time.time()-t0:.0f}s]", flush=True)
 
     # ---- per-model summary
-    summary = {"seeds": seeds, "models": {}}
+    summary = {"seeds": seeds, "knn_features": args.knn_features, "threads": args.threads, "models": {}}
     for name in models:
         summary["models"][name] = dict(
             oof_auc=float(np.mean([roc_auc_score(y, oof[name][s]) for s in range(len(seeds))])),

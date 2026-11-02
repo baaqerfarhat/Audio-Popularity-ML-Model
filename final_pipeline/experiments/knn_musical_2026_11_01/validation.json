@@ -1,0 +1,18 @@
+{
+  "audio": {
+    "fold_results": 150,
+    "oof_rows": 3863,
+    "submission_files": 8,
+    "rows_per_submission": 863,
+    "ids_labels_ranges_and_finiteness": "passed"
+  },
+  "audio_musical": {
+    "fold_results": 150,
+    "oof_rows": 3863,
+    "submission_files": 8,
+    "rows_per_submission": 863,
+    "ids_labels_ranges_and_finiteness": "passed"
+  },
+  "input_fingerprints": "unchanged",
+  "distance_unit_tests": "4 passed"
+}

@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-01",
+  "python": "3.11.6",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "parent_commit": "ceff599cb32a5d93da3ab17aa10777cbaf953168",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "folds": 5,
+  "group_column": "uri",
+  "threads_per_model": 6,
+  "variants": [
+    "audio",
+    "audio-musical"
+  ],
+  "categorical_mismatch_squared_distance": 1.0,
+  "input_sha256": {
+    "data/train.csv": "88f90fdf3d77b999b32da05a3ad3fd2796893bfc161b945e7566e45fd59b7c7a",
+    "data/test.csv": "a2bceb0409465d446e1b4a05a3363d3d3f3982a8c8168fc4eaec8eac3b06d6dd",
+    "data/sample_submission.csv": "35afd1abf23cb89279d1e10ef4d12d27b86d4406ae9b56984c1725b674835ca8",
+    "final_pipeline/tuned_lgb.json": "eb4d7e5749cbadad9bbe2cd8a137fb54b4127c65edefd01b678db9488853fca4",
+    "final_pipeline/tuned_xgb.json": "dc871fe4fb948c44b86d966d0b1d4a357365b87ffb2567d68028f9d9639e8e16",
+    "final_pipeline/tuned_cat.json": "4efa36af475cca84c09d7637c3725b71ed508cfe0beaf0f13307ec146c7d1e49",
+    "final_pipeline/requirements-lock.txt": "eafc3ed636aada559e85a9fbdf9a09e533e282db18afa6941c7506a3019825d9"
+  }
+}

@@ -12,6 +12,33 @@ Outputs in `results/`: `submission_blend.csv` (recommended), `submission_equal_r
 `submission_<model>.csv` per model, `oof_predictions.csv`, `fold_metrics.csv`,
 `feature_importance_<model>.csv`, `roc_oof.png`, `summary.json`.
 
+## Musical attributes in same-date KNN (November 1, 2026)
+
+The KNN can now include `key`, `mode`, and `time_signature` alongside the ten standardized
+audio features. Each attribute is one-hot encoded and scaled by `1/sqrt(2)`: a mismatch adds
+exactly 1 to squared distance, regardless of the numeric category code or category frequency.
+Missing values use an unknown category. The exact-release-date candidate restriction, five
+neighbors, smoothing, and existing label-feature construction are unchanged. For training
+rows, the KNN excludes zero-distance neighbors; only the separate date target encoding uses
+inner grouped cross-validation.
+
+Use `--knn-features audio` (the default) to reproduce the old distance calculation, or
+`--knn-features audio-musical` for the new one. `--threads` controls CPU threads per model
+(default 6). Specify a separate `--out` folder to preserve earlier results.
+
+The paired five-seed experiment and results are in
+[`experiments/knn_musical_2026_11_01`](experiments/knn_musical_2026_11_01/README.md).
+Its package versions are recorded in `requirements-lock.txt` (Python 3.11 on Windows).
+The musical variant did not improve the paired blend score (weighted AUC 0.843093 versus
+0.843170 for audio-only), so the original distance remains the default.
+From the repository root, run the distance checks with:
+
+```
+.venv/Scripts/python.exe -m unittest discover -s final_pipeline -p test_knn_coordinates.py -v
+```
+
+The sections below describe the original audio-only experiments, not the new musical-attribute run.
+
 ## Audit of the existing code
 * Grouped `StratifiedGroupKFold` by `uri`, date parsing, fold-averaged test predictions, submission format: all correct.
   Public scores (0.831 / 0.834 / 0.838) match CV (0.831–0.837), so nothing was broken.
@@ -29,7 +56,8 @@ Outputs in `results/`: `submission_blend.csv` (recommended), `submission_equal_r
 2. **Album effect.** Tracks sharing the exact release date are album-mates; their labels agree 71% of the time versus
    63% for random same-year tracks (corr 0.32 vs 0.12). Encoded as (a) an out-of-fold target encoding of the date
    string (+count) and (b) the distance-weighted label mean of the 5 nearest same-date tracks in standardized audio
-   space, both computed strictly from each fold's training part (inner 5-fold, grouped by uri). Worth ≈+0.004.
+   space, both computed from each outer fold's training part. The date target encoding uses inner
+   5-fold splits grouped by uri; training-row KNN excludes zero-distance neighbors. Worth ≈+0.004.
 3. **"Test-like" CV.** Because duplicates are over-represented in train, plain OOF AUC overstates leaderboard AUC.
    We report a weighted OOF AUC that down-weights duplicate rows to the test prevalence (2.5%); it tracks the public
    board far better and is what the blend weights are optimised on.

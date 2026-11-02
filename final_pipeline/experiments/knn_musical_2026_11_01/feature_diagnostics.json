@@ -1,0 +1,7 @@
+{
+  "seed": 0,
+  "validation_rows": 3863,
+  "rows_with_same_date_training_candidates": 2658,
+  "rows_with_changed_knn_label_mean": 2615,
+  "fraction_with_changed_knn_label_mean": 0.6769350245922858
+}

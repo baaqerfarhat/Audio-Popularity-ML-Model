@@ -1,0 +1,49 @@
+{
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "knn_features": "audio",
+  "threads": 6,
+  "models": {
+    "lgb_tuned": {
+      "oof_auc": 0.856664068909906,
+      "test_like_auc": 0.8402838955192337
+    },
+    "lgb_deep": {
+      "oof_auc": 0.8540024849130281,
+      "test_like_auc": 0.8377150763798126
+    },
+    "xgb_tuned": {
+      "oof_auc": 0.8553806477700432,
+      "test_like_auc": 0.8398458461625309
+    },
+    "cat_tuned": {
+      "oof_auc": 0.8567029177157608,
+      "test_like_auc": 0.8397711655197639
+    },
+    "cat_base": {
+      "oof_auc": 0.8547000590078685,
+      "test_like_auc": 0.8377833540827341
+    },
+    "extra_trees": {
+      "oof_auc": 0.8526677845248927,
+      "test_like_auc": 0.8354757557258277
+    }
+  },
+  "blend": {
+    "weights": {
+      "lgb_tuned": 0.25,
+      "extra_trees": 0.25,
+      "cat_base": 0.25,
+      "xgb_tuned": 0.25
+    },
+    "oof_auc": 0.8593607696412745,
+    "test_like_auc": 0.8431698992304909,
+    "equal_weight_oof_auc": 0.8591892119040734,
+    "equal_weight_test_like_auc": 0.8429520067865182
+  }
+}
