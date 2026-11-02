@@ -1,4 +1,4 @@
-"""Paired, one-control-at-a-time LightGBM regularization experiment."""
+"""Paired LightGBM regularization experiments with fixed validation splits."""
 import argparse
 import hashlib
 import json
@@ -18,26 +18,35 @@ CHANGES = {
     "min_leaf_20": {"min_child_samples": 20}, "min_leaf_30": {"min_child_samples": 30},
     "l2_0p1": {"reg_lambda": .1}, "l2_1": {"reg_lambda": 1.},
 }
+L1_L2_CHANGES = {
+    "baseline": {}, "l2_0p1": {"reg_lambda": .1},
+    "l1_0p1": {"reg_alpha": .1}, "l1_1": {"reg_alpha": 1.},
+    "l1_0p1_l2_0p1": {"reg_alpha": .1, "reg_lambda": .1},
+    "l1_1_l2_0p1": {"reg_alpha": 1., "reg_lambda": .1},
+}
 
 
 def main():
     here = Path(__file__).resolve().parent
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", type=Path, default=here / "experiments/gentle_regularization_2026_11_01")
+    ap.add_argument("--suite", choices=["gentle", "l1_l2"], default="gentle")
+    ap.add_argument("--out", type=Path)
     ap.add_argument("--threads", type=int, default=6)
     args = ap.parse_args()
-    out = args.out.resolve()
+    default_name = "gentle_regularization_2026_11_01" if args.suite == "gentle" else "l1_l2_regularization_2026_11_01"
+    out = (args.out or here / "experiments" / default_name).resolve()
     out.mkdir(parents=True, exist_ok=True)
     if (out / "metadata.json").exists():
         raise FileExistsError("Choose a fresh output directory")
     base = json.loads((here / "tuned_lgb.json").read_text())
-    configs = {name: dict(base, **change) for name, change in CHANGES.items()}
-    assert all(sum(config[k] != base[k] for k in base) == (name != "baseline")
+    changes = CHANGES if args.suite == "gentle" else L1_L2_CHANGES
+    configs = {name: dict(base, **change) for name, change in changes.items()}
+    assert all(sum(config[k] != base[k] for k in base) == len(changes[name])
                for name, config in configs.items())
     seeds = list(range(5))
     files = [here.parent / "data/train.csv", here.parent / "data/test.csv", here / "train.py",
              here / "analyze_bias_variance.py", Path(__file__), here / "tuned_lgb.json", here / "requirements-lock.txt"]
-    metadata = dict(seeds=seeds, folds=5, threads=args.threads, knn_features="audio", configurations=configs,
+    metadata = dict(suite=args.suite, seeds=seeds, folds=5, threads=args.threads, knn_features="audio", configurations=configs,
                     selection_metric="mean per-seed weighted OOF AUC (existing duplicate-prevalence adjustment)",
                     source_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=here, text=True).strip(),
                     sha256={str(p.relative_to(here.parent)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
@@ -98,6 +107,11 @@ def main():
     import matplotlib.pyplot as plt
     labels = ["Current baseline", "Leaves: 22 → 16", "Depth: 6 → 5", "Min. leaf rows: 11 → 20",
               "Min. leaf rows: 11 → 30", "L2: 0.0029 → 0.1", "L2: 0.0029 → 1"]
+    title = "Gentle LightGBM regularization: one change at a time"
+    if args.suite == "l1_l2":
+        labels = ["Current baseline", "L2=0.1 (prior candidate)", "L1=0.1", "L1=1",
+                  "L1=0.1 + L2=0.1", "L1=1 + L2=0.1"]
+        title = "LightGBM L1 and combined L1 + L2 regularization"
     fig, ax = plt.subplots(figsize=(9, 4.8))
     yaxis = np.arange(len(table))
     ax.scatter(table.weighted_oof_auc, yaxis, color="#28649B", s=55, zorder=3)
@@ -108,7 +122,7 @@ def main():
     ax.set_yticks(yaxis, labels)
     ax.invert_yaxis()
     ax.set(xlabel="Mean weighted OOF AUC across five seeds (higher is better)",
-           title="Gentle LightGBM regularization: one change at a time")
+           title=title)
     lo, hi = table.weighted_oof_auc.min(), table.weighted_oof_auc.max()
     span = max(hi-lo, .001)
     ax.set_xlim(lo-.15*span, hi+1.3*span)

@@ -8,6 +8,10 @@ The follow-up [gentle regularization comparison](experiments/gentle_regularizati
 tests six single-parameter changes over five seeds. L2=0.1 is a tentative candidate;
 its fixed-blend gain is tiny, so the default configuration remains unchanged.
 
+The [L1 and combined L1 + L2 follow-up](experiments/l1_l2_regularization_2026_11_01/README.md)
+tests four additional penalty settings. None beat the L2-only candidate, and all
+four slightly lowered the fixed-weight blend score relative to the baseline.
+
 `train.py` is self-contained (needs pandas, numpy, scipy, scikit-learn, lightgbm, xgboost, catboost, matplotlib).
 
 ```

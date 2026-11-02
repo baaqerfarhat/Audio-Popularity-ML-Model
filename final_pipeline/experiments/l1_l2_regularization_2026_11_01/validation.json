@@ -1,0 +1,11 @@
+{
+  "fits": 150,
+  "seed_scores": 30,
+  "submissions_checked": 12,
+  "group_boundaries": "passed",
+  "independent_rank_auc": "all 30 seed scores matched",
+  "weighted_auc": "all 30 seed scores recomputed",
+  "baseline_and_l2_reproduction": "OOF and test predictions match prior run to 1e-14",
+  "input_hashes": "unchanged",
+  "tree_structure_and_other_parameters": "identical across candidates"
+}

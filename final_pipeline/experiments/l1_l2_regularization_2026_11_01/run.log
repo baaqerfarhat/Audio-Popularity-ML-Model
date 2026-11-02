@@ -1,0 +1,37 @@
+seed 0 baseline: AUC=0.857846, weighted=0.841938
+seed 0 l2_0p1: AUC=0.857755, weighted=0.842010
+seed 0 l1_0p1: AUC=0.856022, weighted=0.839965
+seed 0 l1_1: AUC=0.855946, weighted=0.839404
+seed 0 l1_0p1_l2_0p1: AUC=0.856361, weighted=0.840354
+seed 0 l1_1_l2_0p1: AUC=0.856084, weighted=0.839648
+seed 1 baseline: AUC=0.856006, weighted=0.839487
+seed 1 l2_0p1: AUC=0.855641, weighted=0.839360
+seed 1 l1_0p1: AUC=0.856598, weighted=0.840117
+seed 1 l1_1: AUC=0.854329, weighted=0.837154
+seed 1 l1_0p1_l2_0p1: AUC=0.856085, weighted=0.839711
+seed 1 l1_1_l2_0p1: AUC=0.854203, weighted=0.837017
+seed 2 baseline: AUC=0.857256, weighted=0.840811
+seed 2 l2_0p1: AUC=0.858983, weighted=0.842629
+seed 2 l1_0p1: AUC=0.857980, weighted=0.841687
+seed 2 l1_1: AUC=0.855915, weighted=0.838900
+seed 2 l1_0p1_l2_0p1: AUC=0.857817, weighted=0.841439
+seed 2 l1_1_l2_0p1: AUC=0.855835, weighted=0.838877
+seed 3 baseline: AUC=0.858469, weighted=0.842108
+seed 3 l2_0p1: AUC=0.857714, weighted=0.841275
+seed 3 l1_0p1: AUC=0.858256, weighted=0.841730
+seed 3 l1_1: AUC=0.857059, weighted=0.840091
+seed 3 l1_0p1_l2_0p1: AUC=0.859315, weighted=0.843029
+seed 3 l1_1_l2_0p1: AUC=0.856783, weighted=0.839795
+seed 4 baseline: AUC=0.853744, weighted=0.837077
+seed 4 l2_0p1: AUC=0.854484, weighted=0.837953
+seed 4 l1_0p1: AUC=0.855151, weighted=0.838169
+seed 4 l1_1: AUC=0.852929, weighted=0.835831
+seed 4 l1_0p1_l2_0p1: AUC=0.853688, weighted=0.836320
+seed 4 l1_1_l2_0p1: AUC=0.853801, weighted=0.836345
+    candidate  oof_auc  weighted_oof_auc  weighted_delta  weighted_seed_wins  min_seed_weighted_delta  max_seed_weighted_delta  train_auc  validation_fold_auc  auc_gap  logloss
+     baseline 0.856664          0.840284        0.000000                   0                 0.000000                 0.000000   0.970273             0.857290 0.112983 0.439530
+       l2_0p1 0.856915          0.840645        0.000362                   3                -0.000833                 0.001818   0.968448             0.857528 0.110920 0.439304
+       l1_0p1 0.856801          0.840333        0.000050                   3                -0.001973                 0.001092   0.964644             0.857300 0.107344 0.439124
+         l1_1 0.855236          0.838276       -0.002008                   0                -0.002534                -0.001245   0.928796             0.855928 0.072868 0.441237
+l1_0p1_l2_0p1 0.856653          0.840170       -0.000113                   3                -0.001584                 0.000922   0.963204             0.857134 0.106069 0.439434
+  l1_1_l2_0p1 0.855341          0.838336       -0.001947                   0                -0.002470                -0.000732   0.928224             0.855933 0.072291 0.441013
