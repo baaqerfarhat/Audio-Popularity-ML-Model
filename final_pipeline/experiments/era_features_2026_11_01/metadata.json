@@ -1,0 +1,49 @@
+{
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "folds": 5,
+  "parameters": {
+    "n_estimators": 1400,
+    "learning_rate": 0.010425322753516588,
+    "num_leaves": 22,
+    "max_depth": 6,
+    "min_child_samples": 11,
+    "subsample": 0.5552023046195264,
+    "colsample_bytree": 0.5720938881088363,
+    "reg_alpha": 0.001588888980185433,
+    "reg_lambda": 0.0029158775749992126,
+    "min_split_gain": 0.024453802531449877,
+    "extra_trees": true,
+    "subsample_freq": 1
+  },
+  "threads": 6,
+  "features": [
+    "loudness",
+    "duration_ms",
+    "energy",
+    "acousticness"
+  ],
+  "era": "calendar decade: floor(year / 10) * 10",
+  "minimum_reference": 30,
+  "reference": "outer training distinct URIs; query URI excluded; sparse/unknown decade uses global training reference",
+  "missing_audio": "NaN",
+  "percentile": "fraction strictly below + half fraction equal",
+  "primary_metric": "mean per-seed weighted OOF AUC",
+  "baseline": "unchanged audio KNN pipeline, including existing transductive counts/scaling and zero-distance training KNN exclusion",
+  "ensemble": "fixed equal ranks of LightGBM, ExtraTrees, base CatBoost, tuned XGBoost; seed-average then rank",
+  "source_commit": "ddc07efc905eed6defaec02e646137b1645c30f1",
+  "sha256": {
+    "final_pipeline\\try_era_features.py": "2609f9272bf9f6c9845585b03121ecf0f2c4fd200298a20907f285d9ea7008db",
+    "final_pipeline\\train.py": "fa11fe8569ba93fb0a848f0822dd4695af7497f20a1a1c375eedb4054ebe75a9",
+    "final_pipeline\\analyze_bias_variance.py": "d544c3d524e01f4d5ad1637ac4189f00843854aa41582140477673cfc7e3e10c",
+    "final_pipeline\\tuned_lgb.json": "eb4d7e5749cbadad9bbe2cd8a137fb54b4127c65edefd01b678db9488853fca4",
+    "final_pipeline\\requirements-lock.txt": "eafc3ed636aada559e85a9fbdf9a09e533e282db18afa6941c7506a3019825d9",
+    "data\\train.csv": "88f90fdf3d77b999b32da05a3ad3fd2796893bfc161b945e7566e45fd59b7c7a",
+    "data\\test.csv": "a2bceb0409465d446e1b4a05a3363d3d3f3982a8c8168fc4eaec8eac3b06d6dd"
+  }
+}

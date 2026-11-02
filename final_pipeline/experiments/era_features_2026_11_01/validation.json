@@ -1,0 +1,11 @@
+{
+  "fits": 50,
+  "baseline_reproduced": true,
+  "group_boundaries_checked": true,
+  "predictions_finite": true,
+  "test_ids_checked": true,
+  "source_hashes_verified": true,
+  "all_seed_auc_recomputed": true,
+  "original_row_alignment_verified": true,
+  "all_submission_ids_verified": true
+}

@@ -1,5 +1,10 @@
 # Final pipeline — what changed and why
 
+The [era-relative audio feature experiment](experiments/era_features_2026_11_01/README.md)
+adds four training-reference percentiles within release decades. It improves mean
+weighted LightGBM OOF AUC by 0.000519 (four of five seeds) and the fixed ensemble
+by 0.000247. This remains an exploratory candidate; defaults are unchanged.
+
 The [November 1 bias–variance diagnostics](experiments/bias_variance_2026_11_01/README.md)
 compare training and validation scores, learning curves, and prediction stability.
 They preserve the production model settings and existing submissions.
