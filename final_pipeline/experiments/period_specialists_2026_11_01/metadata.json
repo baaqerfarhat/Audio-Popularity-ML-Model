@@ -1,0 +1,42 @@
+{
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "folds": 5,
+  "cutoff_year": 2020,
+  "blend_weight_global": 0.5,
+  "unknown_date_policy": "global fallback",
+  "knn_features": "audio",
+  "threads": 6,
+  "parameters": {
+    "n_estimators": 1400,
+    "learning_rate": 0.010425322753516588,
+    "num_leaves": 22,
+    "max_depth": 6,
+    "min_child_samples": 11,
+    "subsample": 0.5552023046195264,
+    "colsample_bytree": 0.5720938881088363,
+    "reg_alpha": 0.001588888980185433,
+    "reg_lambda": 0.0029158775749992126,
+    "min_split_gain": 0.024453802531449877,
+    "extra_trees": true,
+    "subsample_freq": 1
+  },
+  "primary_metric": "mean per-seed weighted OOF AUC",
+  "specialist_labels": "only same-period outer training rows; inner grouped target encoding rebuilt",
+  "label_free_features": "same full-file counts and train+test audio scaling as original pipeline",
+  "source_commit": "0977d2b88584f64b74e7d6114fa5f886f2dfd1cf",
+  "sha256": {
+    "data\\train.csv": "88f90fdf3d77b999b32da05a3ad3fd2796893bfc161b945e7566e45fd59b7c7a",
+    "data\\test.csv": "a2bceb0409465d446e1b4a05a3363d3d3f3982a8c8168fc4eaec8eac3b06d6dd",
+    "final_pipeline\\train.py": "fa11fe8569ba93fb0a848f0822dd4695af7497f20a1a1c375eedb4054ebe75a9",
+    "final_pipeline\\analyze_bias_variance.py": "d544c3d524e01f4d5ad1637ac4189f00843854aa41582140477673cfc7e3e10c",
+    "final_pipeline\\tuned_lgb.json": "eb4d7e5749cbadad9bbe2cd8a137fb54b4127c65edefd01b678db9488853fca4",
+    "final_pipeline\\requirements-lock.txt": "eafc3ed636aada559e85a9fbdf9a09e533e282db18afa6941c7506a3019825d9",
+    "final_pipeline\\try_period_specialists.py": "46aedbfde67c4c2aa7cd71c03c01d5b5edc54cbe43c77dec1fcefdd2d77ebb47"
+  }
+}

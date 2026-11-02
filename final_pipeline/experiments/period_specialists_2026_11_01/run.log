@@ -1,0 +1,25 @@
+seed 0 global: AUC=0.857846, weighted=0.841938, logloss=0.439779
+seed 0 specialist: AUC=0.853189, weighted=0.837553, logloss=0.449242
+seed 0 half_global_half_specialist: AUC=0.857854, weighted=0.842323, logloss=0.440844
+seed 1 global: AUC=0.856006, weighted=0.839487, logloss=0.440009
+seed 1 specialist: AUC=0.853825, weighted=0.837757, logloss=0.446087
+seed 1 half_global_half_specialist: AUC=0.857054, weighted=0.841042, logloss=0.439540
+seed 2 global: AUC=0.857256, weighted=0.840811, logloss=0.438815
+seed 2 specialist: AUC=0.855997, weighted=0.840169, logloss=0.443406
+seed 2 half_global_half_specialist: AUC=0.858567, weighted=0.842689, logloss=0.437683
+seed 3 global: AUC=0.858469, weighted=0.842108, logloss=0.436560
+seed 3 specialist: AUC=0.854957, weighted=0.838798, logloss=0.445014
+seed 3 half_global_half_specialist: AUC=0.858828, weighted=0.842771, logloss=0.437115
+seed 4 global: AUC=0.853744, weighted=0.837077, logloss=0.442486
+seed 4 specialist: AUC=0.850967, weighted=0.834447, logloss=0.450006
+seed 4 half_global_half_specialist: AUC=0.854635, weighted=0.838254, logloss=0.442420
+                    variant      cohort      auc  weighted_auc  weighted_delta  seed_wins  logloss  high_miss_rate  low_false_high_rate
+                     global     overall 0.856664      0.840284        0.000000          0 0.439530        0.378955             0.117093
+                     global before_2020 0.841438      0.823072        0.000000          0 0.488806        0.246809             0.233653
+                     global 2020_onward 0.840058      0.815568        0.000000          0 0.408826        0.542669             0.069036
+                 specialist     overall 0.853787      0.837745       -0.002539          0 0.446751        0.380574             0.121326
+                 specialist before_2020 0.833359      0.814971       -0.008101          0 0.501083        0.248404             0.251163
+                 specialist 2020_onward 0.839642      0.815741        0.000174          3 0.412896        0.544316             0.067795
+half_global_half_specialist     overall 0.857388      0.841416        0.001132          5 0.439520        0.378955             0.116534
+half_global_half_specialist before_2020 0.840055      0.821891       -0.001182          0 0.490386        0.244947             0.237756
+half_global_half_specialist 2020_onward 0.842122      0.818343        0.002775          5 0.407825        0.544975             0.066554

@@ -1,0 +1,4 @@
+period,train_rows,unique_tracks,high_rows,test_rows
+unknown,0,0,0,0
+before_2020,1483,1391,752,310
+2020_onward,2380,2251,607,553

@@ -16,6 +16,12 @@ The [track-error analysis](experiments/track_errors_2026_11_01/README.md) identi
 407 consistently misclassified unique tracks, release-period and instrumentalness
 patterns, and 32 separate URIs with identical inputs but conflicting labels.
 
+The [release-period specialist experiment](experiments/period_specialists_2026_11_01/README.md)
+compares the global model, two specialists, and a fixed 50/50 average. Averaging
+improves overall weighted OOF AUC on five of five seeds, with tradeoffs across
+periods and only a small downstream ensemble gain. Candidate submissions are saved;
+production defaults are unchanged.
+
 `train.py` is self-contained (needs pandas, numpy, scipy, scikit-learn, lightgbm, xgboost, catboost, matplotlib).
 
 ```
