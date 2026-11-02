@@ -1,0 +1,14 @@
+{
+  "fits": 135,
+  "oof_predictions": 81123,
+  "group_split_checks": "passed",
+  "independent_rank_auc_logloss_brier_checks": "passed for all 21 model/seed pairs",
+  "baseline_validation_reproduction": "75 non-ExtraTrees folds match to 1e-12; ExtraTrees differs by less than 1e-5",
+  "max_baseline_auc_difference": 3.7211240772050402e-06,
+  "input_hashes": "unchanged",
+  "unit_tests": "3 passed",
+  "regularization_auc_wins": 0,
+  "regularization_mean_auc_delta": -0.00946362516686133,
+  "learning_curve_full_beats_quarter": 15,
+  "learning_curve_full_beats_half": 15
+}

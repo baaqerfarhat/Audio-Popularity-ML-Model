@@ -1,5 +1,9 @@
 # Final pipeline — what changed and why
 
+The [November 1 bias–variance diagnostics](experiments/bias_variance_2026_11_01/README.md)
+compare training and validation scores, learning curves, and prediction stability.
+They preserve the production model settings and existing submissions.
+
 `train.py` is self-contained (needs pandas, numpy, scipy, scikit-learn, lightgbm, xgboost, catboost, matplotlib).
 
 ```

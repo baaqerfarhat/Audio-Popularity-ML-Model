@@ -1,0 +1,37 @@
+seed 0 lgb_tuned: train AUC=0.9703, OOF AUC=0.8578 [2s]
+seed 0 lgb_deep: train AUC=0.9980, OOF AUC=0.8540 [1s]
+seed 0 xgb_tuned: train AUC=0.9944, OOF AUC=0.8548 [3s]
+seed 0 cat_tuned: train AUC=0.9628, OOF AUC=0.8573 [40s]
+seed 0 cat_base: train AUC=0.9955, OOF AUC=0.8551 [35s]
+seed 0 extra_trees: train AUC=0.9995, OOF AUC=0.8516 [5s]
+seed 0 lgb_regularized: train AUC=0.8871, OOF AUC=0.8487 [1s]
+seed 0: learning curve complete
+seed 1 lgb_tuned: train AUC=0.9706, OOF AUC=0.8560 [2s]
+seed 1 lgb_deep: train AUC=0.9980, OOF AUC=0.8530 [2s]
+seed 1 xgb_tuned: train AUC=0.9944, OOF AUC=0.8536 [3s]
+seed 1 cat_tuned: train AUC=0.9619, OOF AUC=0.8565 [41s]
+seed 1 cat_base: train AUC=0.9945, OOF AUC=0.8527 [36s]
+seed 1 extra_trees: train AUC=0.9995, OOF AUC=0.8535 [5s]
+seed 1 lgb_regularized: train AUC=0.8875, OOF AUC=0.8474 [2s]
+seed 1: learning curve complete
+seed 2 lgb_tuned: train AUC=0.9700, OOF AUC=0.8573 [2s]
+seed 2 lgb_deep: train AUC=0.9980, OOF AUC=0.8570 [1s]
+seed 2 xgb_tuned: train AUC=0.9946, OOF AUC=0.8570 [3s]
+seed 2 cat_tuned: train AUC=0.9631, OOF AUC=0.8572 [42s]
+seed 2 cat_base: train AUC=0.9955, OOF AUC=0.8570 [36s]
+seed 2 extra_trees: train AUC=0.9995, OOF AUC=0.8544 [5s]
+seed 2 lgb_regularized: train AUC=0.8870, OOF AUC=0.8473 [1s]
+seed 2: learning curve complete
+          model  fits  train_auc  validation_auc  train_weighted_auc  validation_weighted_auc  train_logloss  validation_logloss  train_brier  validation_brier  auc_gap  validation_fold_auc_sd
+      lgb_tuned    15   0.970302        0.857540            0.968318                 0.841498       0.272616            0.439557     0.078650          0.143563 0.112762                0.012269
+       lgb_deep    15   0.997985        0.854931            0.998872                 0.839137       0.158028            0.447387     0.034669          0.146217 0.143054                0.009991
+      xgb_tuned    15   0.994456        0.855518            0.995470                 0.840474       0.200694            0.442759     0.049014          0.144993 0.138938                0.010710
+      cat_tuned    15   0.962598        0.857309            0.959182                 0.840702       0.297383            0.440079     0.086501          0.143689 0.105290                0.011765
+       cat_base    15   0.995143        0.855453            0.996117                 0.838728       0.189427            0.445112     0.045886          0.145421 0.139690                0.011281
+    extra_trees    15   0.999488        0.853655            0.999874                 0.836478       0.140525            0.448852     0.027770          0.145591 0.145833                0.014111
+lgb_regularized    15   0.887172        0.848076            0.873427                 0.830446       0.407021            0.453834     0.129810          0.148374 0.039095                0.013108
+ fraction  fits  train_rows  train_auc  validation_auc  train_logloss  validation_logloss
+ 0.250000    15  772.733333   0.996084        0.821003       0.191402            0.495297
+ 0.500000    15 1545.866667   0.990011        0.841461       0.222857            0.462890
+ 1.000000    15 3090.400000   0.970302        0.857540       0.272616            0.439557
+Diagnostics complete
