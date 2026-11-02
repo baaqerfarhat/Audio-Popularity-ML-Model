@@ -215,6 +215,7 @@ def main():
     ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--models", default="lgb_tuned,lgb_deep,xgb_tuned,cat_tuned,cat_base,extra_trees")
     ap.add_argument("--task-type", default="CPU", choices=["CPU", "GPU"])
+    ap.add_argument("--n-folds", type=int, default=5)
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     here = os.path.dirname(os.path.abspath(__file__))
@@ -244,7 +245,7 @@ def main():
     importances = {}
     fold_rows = []
     for si, seed in enumerate(seeds):
-        folds = list(StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=seed).split(X, y, groups=tr["uri"]))
+        folds = list(StratifiedGroupKFold(n_splits=args.n_folds, shuffle=True, random_state=seed).split(X, y, groups=tr["uri"]))
         mats = fold_matrices(X, Xte, tr, te, y, folds, seed)
         for name, fp in models.items():
             t0 = time.time()
@@ -259,7 +260,7 @@ def main():
             print(f"seed {seed} {name:12s} OOF AUC={a:.4f} test-like={aw:.4f} [{time.time()-t0:.0f}s]", flush=True)
 
     # ---- per-model summary
-    summary = {"seeds": seeds, "models": {}}
+    summary = {"seeds": seeds, "n_folds": args.n_folds, "models": {}}
     for name in models:
         summary["models"][name] = dict(
             oof_auc=float(np.mean([roc_auc_score(y, oof[name][s]) for s in range(len(seeds))])),
