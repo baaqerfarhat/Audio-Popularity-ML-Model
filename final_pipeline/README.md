@@ -22,6 +22,11 @@ improves overall weighted OOF AUC on five of five seeds, with tradeoffs across
 periods and only a small downstream ensemble gain. Candidate submissions are saved;
 production defaults are unchanged.
 
+The [instrumental specialist experiment](experiments/instrumental_specialist_2026_11_01/README.md)
+tests instrumentalness >=0.5 with LightGBM and a fixed 50/50 average. It slightly
+reduces overall and final-ensemble AUC and increases instrumental High-label misses;
+the specialist is not enabled in the default pipeline.
+
 `train.py` is self-contained (needs pandas, numpy, scipy, scikit-learn, lightgbm, xgboost, catboost, matplotlib).
 
 ```

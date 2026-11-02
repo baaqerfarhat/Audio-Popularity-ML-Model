@@ -1,10 +1,19 @@
 import unittest
 import numpy as np
 from sklearn.metrics import roc_auc_score
-from try_period_specialists import release_periods, route_predictions, pairwise_auc
+from try_period_specialists import release_periods, instrumental_groups, route_predictions, pairwise_auc
 
 
 class PeriodTests(unittest.TestCase):
+    def test_instrumental_boundary_and_noninstrumental_predictions_unchanged(self):
+        groups=instrumental_groups([0.,.4999,.5,1.,None])
+        np.testing.assert_array_equal(groups,[0,0,1,1,0])
+        global_p=np.array([.2,.3,.4,.5,.6]); specialist_p=np.full(5,.1)
+        routed=route_predictions(global_p,global_p,specialist_p,groups)
+        np.testing.assert_array_equal(routed[groups==0],global_p[groups==0])
+        np.testing.assert_array_equal(routed[groups==1],[.1,.1])
+        np.testing.assert_array_equal((.5*(global_p+routed))[groups==0],global_p[groups==0])
+
     def test_boundaries_and_unknown_fallback(self):
         periods=release_periods(["2019-12-31","2020-01-01","2024","1998-03",None,"bad"])
         np.testing.assert_array_equal(periods,[0,1,1,0,-1,-1])

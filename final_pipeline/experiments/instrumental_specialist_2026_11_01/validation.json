@@ -1,0 +1,17 @@
+{
+  "model_fits": 50,
+  "cohort_seed_metrics": 45,
+  "pair_block_metrics": 60,
+  "group_boundaries": "passed",
+  "noninstrumental_raw_probabilities": "unchanged exactly in OOF and test arrays",
+  "independent_rank_auc_and_direct_logloss": "all 45 cohort/seed metrics matched",
+  "pairwise_weighted_auc": "all 60 pair blocks matched sklearn and reconcile to overall AUC",
+  "global_reproduction": "OOF and test predictions match prior baseline to 1e-14",
+  "specialist_feature_label_isolation": "flipping every excluded label leaves all matrices unchanged in first fold",
+  "average_prediction_identity": "passed",
+  "submissions_checked": 6,
+  "input_hashes": "unchanged",
+  "unit_tests": "3 passed",
+  "specialist_train_high_rows_min": 32,
+  "specialist_train_high_rows_max": 42
+}

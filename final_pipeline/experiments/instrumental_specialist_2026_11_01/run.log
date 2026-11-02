@@ -1,0 +1,25 @@
+seed 0 global: AUC=0.857846, weighted=0.841938, logloss=0.439779
+seed 0 specialist: AUC=0.854324, weighted=0.839704, logloss=0.455285
+seed 0 half_global_half_specialist: AUC=0.857263, weighted=0.841578, logloss=0.441213
+seed 1 global: AUC=0.856006, weighted=0.839487, logloss=0.440009
+seed 1 specialist: AUC=0.852789, weighted=0.837993, logloss=0.453734
+seed 1 half_global_half_specialist: AUC=0.855409, weighted=0.839479, logloss=0.441182
+seed 2 global: AUC=0.857256, weighted=0.840811, logloss=0.438815
+seed 2 specialist: AUC=0.852098, weighted=0.837375, logloss=0.456922
+seed 2 half_global_half_specialist: AUC=0.855979, weighted=0.839919, logloss=0.441164
+seed 3 global: AUC=0.858469, weighted=0.842108, logloss=0.436560
+seed 3 specialist: AUC=0.853651, weighted=0.838698, logloss=0.453004
+seed 3 half_global_half_specialist: AUC=0.857483, weighted=0.841398, logloss=0.438136
+seed 4 global: AUC=0.853744, weighted=0.837077, logloss=0.442486
+seed 4 specialist: AUC=0.850926, weighted=0.835975, logloss=0.455980
+seed 4 half_global_half_specialist: AUC=0.853459, weighted=0.837422, logloss=0.443330
+                    variant                      cohort      auc  weighted_auc  weighted_delta  seed_wins  logloss  high_miss_rate  low_false_high_rate
+                     global                     overall 0.856664      0.840284        0.000000          0 0.439530        0.378955             0.117093
+                     global non_instrumental_or_missing 0.814755      0.791287        0.000000          0 0.513273        0.361128             0.167615
+                     global                instrumental 0.811385      0.785214        0.000000          0 0.169228        0.876596             0.005634
+                 specialist                     overall 0.852757      0.837949       -0.002335          0 0.454985        0.380574             0.115815
+                 specialist non_instrumental_or_missing 0.814755      0.791287        0.000000          0 0.513273        0.361128             0.167615
+                 specialist                instrumental 0.745359      0.755386       -0.029828          0 0.241333        0.923404             0.001536
+half_global_half_specialist                     overall 0.855919      0.839959       -0.000325          1 0.441005        0.380280             0.115735
+half_global_half_specialist non_instrumental_or_missing 0.814755      0.791287        0.000000          0 0.513273        0.361128             0.167615
+half_global_half_specialist                instrumental 0.809636      0.784887       -0.000327          2 0.176110        0.914894             0.001280

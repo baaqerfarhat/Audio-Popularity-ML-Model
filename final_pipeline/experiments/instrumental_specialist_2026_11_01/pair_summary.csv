@@ -1,0 +1,13 @@
+variant,positive_period,negative_period,weighted_pair_auc
+global,0,0,0.7912873236214655
+global,1,1,0.7852143283243949
+global,0,1,0.9884058596787482
+global,1,0,0.33682713848647117
+specialist,0,0,0.7912873236214655
+specialist,1,1,0.7553861992515047
+specialist,0,1,0.9937602223504859
+specialist,1,0,0.1909466182378362
+half_global_half_specialist,0,0,0.7912873236214655
+half_global_half_specialist,1,1,0.7848869304195591
+half_global_half_specialist,0,1,0.9925847649153485
+half_global_half_specialist,1,0,0.2724780019902227
