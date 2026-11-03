@@ -30,7 +30,7 @@ ax.bar(g.index.astype(str), g["mean"], color=BLUE, width=0.62)
 for i, (m, n) in enumerate(zip(g["mean"], g["count"])):
     ax.text(i, m + 0.02, f"n={n}", ha="center", va="bottom", fontsize=7.5, color=MUTED)
 ax.axhline(y.mean(), color=MUTED, lw=1, ls="--"); ax.text(10.4, y.mean() + 0.015, f"overall {y.mean():.2f}", ha="right", fontsize=8, color=MUTED)
-ax.set(ylabel="share of High-popularity tracks", xlabel="album release year", ylim=(0, 1.08), title="Older tracks that survive into 2024 playlists are almost all 'High'")
+ax.set(ylabel="share of High-popularity tracks", xlabel="album release year", ylim=(0, 1.08), title="Release era strongly separates popularity labels")
 ax.grid(axis="x", visible=False); fig.tight_layout(); fig.savefig(f"{OUT}/fig_year_rate.png", dpi=200); plt.close(fig)
 
 # ---- Figure 2: track multiplicity and album effect
@@ -72,18 +72,48 @@ fig.tight_layout(); fig.savefig(f"{OUT}/fig_multiplicity_album.png", dpi=200); p
 # ---- Figure 3: ablation / progression (grouped 5-fold CV, mean of 3 seeds)
 rows = [("audio features only (LightGBM)", 0.7517, None), ("+ release-date features", 0.8325, 0.8292),
         ("+ uri_count", 0.8497, 0.8353), ("+ album target-enc + same-date kNN", 0.8536, 0.8375),
-        ("+ Optuna tuning (LightGBM)", 0.8571, 0.8410), ("rank-average blend (LGB+XGB+Cat+ET)", 0.8595, 0.8433)]
+        ("+ Optuna tuning (LightGBM)", 0.8571, 0.8410), ("rank-average blend (LGB+XGB+Cat+ET)", 0.8646, 0.8487)]
 fig, ax = plt.subplots(figsize=(7.4, 3.3))
 names = [r[0] for r in rows][::-1]; plain = [r[1] for r in rows][::-1]; tl = [r[2] if r[2] else np.nan for r in rows][::-1]
 yy = np.arange(len(rows))
 ax.barh(yy + 0.18, plain, height=0.34, color=BLUE, label="OOF AUC")
-ax.barh(yy - 0.18, tl, height=0.34, color=ORANGE, label="test-like OOF AUC (duplicates down-weighted)")
+ax.barh(yy - 0.18, tl, height=0.34, color=ORANGE, label="Adjusted OOF AUC")
 for i, (p, t) in enumerate(zip(plain, tl)):
     ax.text(p + 0.002, i + 0.18, f"{p:.3f}", va="center", fontsize=8, color=INK)
     if not np.isnan(t):
         ax.text(t + 0.002, i - 0.18, f"{t:.3f}", va="center", fontsize=8, color=INK)
-ax.set_yticks(yy); ax.set_yticklabels(names, fontsize=9); ax.set(xlim=(0.70, 0.90), xlabel="grouped 5-fold CV AUC (mean of seeds)", title="What moved the score")
-ax.axvline(0.837, color=MUTED, lw=1, ls="--"); ax.text(0.8385, len(rows) - 0.95, "previous best\nensemble (0.837)", fontsize=7.5, color=MUTED, va="top")
-ax.legend(loc="upper left", bbox_to_anchor=(0.0, -0.22), ncol=2, fontsize=8, frameon=False); ax.grid(axis="y", visible=False)
+ax.set_yticks(yy); ax.set_yticklabels(names, fontsize=9); ax.set(xlim=(0.70, 0.90), ylim=(-1.2, 6.15), xlabel="grouped out-of-fold AUC", title="What moved the score")
+ax.axvline(0.837, color=MUTED, lw=1, ls="--"); ax.text(0.8385, -0.55, "previous best\nensemble (0.837)", fontsize=7.5, color=MUTED, va="top")
+ax.legend(loc="upper center", ncol=2, fontsize=8, frameon=False); ax.grid(axis="y", visible=False)
 fig.tight_layout(); fig.savefig(f"{OUT}/fig_ablation.png", dpi=200); plt.close(fig)
+
+# ---- Figure 4: baseline regularization and final model comparison
+ROOT = os.path.dirname(os.path.dirname(HERE))
+cv = pd.read_csv(os.path.join(ROOT, "logistic_regression", "results", "cv_results.csv"))
+fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.2))
+ax = axes[0]
+ax.semilogx(cv["C"], cv["mean_validation_auc"], marker="o", color=BLUE, lw=2, label="validation")
+ax.semilogx(cv["C"], cv["mean_training_auc"], marker="o", color=MUTED, lw=1.5, ls="--", label="training")
+best = cv.loc[cv["mean_validation_auc"].idxmax()]
+ax.scatter([best["C"]], [best["mean_validation_auc"]], s=55, color=ORANGE, zorder=3)
+ax.annotate(f"selected C={best['C']:g}", (best["C"], best["mean_validation_auc"]),
+            xytext=(8, -14), textcoords="offset points", fontsize=8, color=INK)
+ax.set(xlabel="inverse L2 strength (C, log scale)", ylabel="ROC AUC", ylim=(0.695, 0.742),
+       title="Logistic regularization")
+ax.legend(fontsize=8, frameon=False)
+
+ax = axes[1]
+model_names = ["Extra Trees", "CatBoost", "LightGBM", "XGBoost", "Final ensemble"]
+model_auc = [0.8375, 0.8413, 0.8435, 0.8435, 0.8487]
+colors = [BLUE] * 4 + [ORANGE]
+yy = np.arange(len(model_names))
+ax.barh(yy, model_auc, color=colors, height=0.58)
+for i, v in enumerate(model_auc):
+    ax.text(v + 0.0005, i, f"{v:.4f}", va="center", fontsize=8, color=INK)
+ax.set_yticks(yy); ax.set_yticklabels(model_names)
+ax.set(xlim=(0.833, 0.852), xlabel="adjusted OOF AUC", title="Diversity improves the final ranking")
+ax.grid(axis="y", visible=False)
+fig.tight_layout()
+fig.savefig(f"{OUT}/fig_appendix_experiments.png", dpi=200)
+plt.close(fig)
 print("saved", os.listdir(OUT))
