@@ -346,39 +346,169 @@ data in this project; these are suggestions for a future dataset.
 \newpage
 
 \section{LLM Usage}
-This section has an example of LLM usage reporting below. Please follow this format to report LLM usage. Indicate each usage clearly.
 \begin{itemize}
   \item Name of LLM(s) Used: ChatGPT
-  \item Components of Project involving LLM: Data processing.
+  \item Components involving the LLM: Colab imports and data loading,
+  Matplotlib figure code, and minor debugging.
 \end{itemize}
 
-\subsection{Data preprocessing (example)}
+\subsection{Colab imports and data loading}
+\noindent\textbf{Prompt:}
+\emph{``can u write the colab setup code that installs and imports everything
+we need, then loads train.csv, test.csv and sample\_submission.csv. if the
+files arent there have it ask me to upload them. keep it simple and dont add a
+bunch of comments''}
 
-\subsubsection{Interaction (example)}
-Only include the parts of the response that you integrated into your project. You may submit screenshots. For example, Figure \ref{fig:llm-output} illustrates the interaction with LLM for data preprocessing.
-Alternatively, you can also write out the prompt and response in text.
+\noindent\textbf{Output integrated into the notebook:}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,breaklines=true]
+%pip install -q lightgbm==4.6.0 xgboost==3.2.0 \
+    catboost==1.2.10 scikit-learn==1.7.2
 
-\subsubsection{Usage/Integration of Responses (example)}
+import os
+import time
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from google.colab import files
+from scipy.stats import rankdata
+from sklearn.metrics import roc_auc_score, roc_curve
+from sklearn.model_selection import StratifiedGroupKFold
 
-As shown in Figure~\ref{fig:data-prep-integration}, We used the response as follows, modifying the name of the encoder object and applying it to our training dataframe data, in column some\_column.
+required_files = ['train.csv', 'test.csv',
+                  'sample_submission.csv']
+missing_files = [name for name in required_files
+                 if not os.path.exists(name)]
+if missing_files:
+    print('Upload train.csv, test.csv, and sample_submission.csv')
+    files.upload()
 
-\IfFileExists{figs/llm_report_1.png}{
-  \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.68\textwidth]{figs/llm_report_1.png}
-    \caption{Interaction with LLM for data preprocessing.}
-    \label{fig:llm-output}
-  \end{figure}
-}{}
+train_data = pd.read_csv('train.csv').dropna(
+    subset=['uri']).reset_index(drop=True)
+test_data = pd.read_csv('test.csv')
+sample_submission = pd.read_csv('sample_submission.csv')
+train_labels = (train_data[TARGET] == 'High').astype(int).values
+\end{lstlisting}
 
-\IfFileExists{figs/llm_report_2.png}{
-  \begin{figure}[t]
-    \centering
-    \includegraphics[width=0.68\textwidth]{figs/llm_report_2.png}
-    \caption{Integration of LLM's output for data preprocessing.}
-    \label{fig:data-prep-integration}
-  \end{figure}
-}{}
+\noindent\textbf{How it was used:}
+We retained this setup in the public Colab notebook, fixed the package
+versions, and used the course-provided CSV files as the only data source.
+
+\subsection{Figure generation}
+\noindent\textbf{Prompt:}
+\emph{``can u make the matplotlib code for the figuers in our report. show the
+high popularity rate by release year with the sample counts and also graph how
+the OOF and adjusted OOF changed when we added features and the ensemble. use
+blue and orange and make the labels easy to read''}
+
+\noindent\textbf{Output integrated for the release-era figure:}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,breaklines=true]
+release_years = build_release_date_features(
+    train_data)['release_year']
+year_bins = [1900, 1980, 1990, 2000, 2010, 2015,
+             2018, 2020, 2022, 2023, 2024, 2025]
+year_labels = ['<1980', '80s', '90s', '00s', '10-14',
+               '15-17', '18-19', '20-21', '2022',
+               '2023', '2024']
+year_groups = pd.DataFrame({
+    'label': train_labels,
+    'era': pd.cut(release_years, year_bins,
+                  labels=year_labels, right=False),
+}).groupby('era', observed=True)['label'].agg(['mean', 'count'])
+
+figure, axis = plt.subplots(figsize=(9, 4))
+axis.bar(year_groups.index.astype(str), year_groups['mean'],
+         color=BLUE, width=.62)
+for index, (rate, count) in enumerate(
+        zip(year_groups['mean'], year_groups['count'])):
+    axis.text(index, rate + .02, f'n={count}',
+              ha='center', fontsize=8, color=MUTED)
+axis.axhline(train_labels.mean(), color=MUTED, ls='--', lw=1)
+axis.set(xlabel='Album release year',
+         ylabel='Share of High-popularity tracks',
+         ylim=(0, 1.08),
+         title='Release era strongly separates popularity labels')
+axis.grid(axis='x', visible=False)
+figure.tight_layout()
+\end{lstlisting}
+
+\noindent\textbf{Output integrated for the validation figure:}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,breaklines=true]
+progression = pd.DataFrame({
+    'Experiment': ['Audio only', '+ release date', '+ URI count',
+                   '+ album and KNN', '+ Optuna tuning',
+                   'Final ensemble'],
+    'OOF AUC': [0.7517, 0.8325, 0.8497, 0.8536, 0.8571, 0.8646],
+    'Adjusted OOF AUC': [np.nan, 0.8292, 0.8353,
+                         0.8375, 0.8410, 0.8487],
+})
+y_positions = np.arange(len(progression))
+axes[0].barh(y_positions + .18, progression['OOF AUC'],
+             height=.34, color=BLUE, label='OOF AUC')
+axes[0].barh(y_positions - .18, progression['Adjusted OOF AUC'],
+             height=.34, color=ORANGE, label='Adjusted OOF AUC')
+axes[0].set_yticks(y_positions, progression['Experiment'])
+axes[0].set(xlim=(.70, .88), xlabel='ROC AUC',
+            title='Validation progression')
+axes[0].legend(frameon=False, fontsize=8)
+\end{lstlisting}
+
+\noindent\textbf{How it was used:}
+We checked the plotted values against our saved validation results, adjusted
+the labels and sizing, and used the resulting figures in both the report and
+Colab notebook.
+
+\subsection{Minor debugging}
+\noindent\textbf{Prompt:}
+\emph{``can u check this grouped cross valdiation loop for leakage? make sure
+the same URI isnt in train and validation and that the release date target
+encoding and same-date KNN only use the training fold. also add an assert so
+we can catch it if it happens''}
+
+\noindent\textbf{Output integrated into the validation loop:}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,breaklines=true]
+folds = list(StratifiedGroupKFold(
+    n_splits=N_FOLDS, shuffle=True, random_state=seed
+).split(train_features, train_labels, groups=train_data['uri']))
+
+fold_feature_matrices = build_fold_feature_matrices(
+    train_features, test_features, train_data, test_data,
+    train_labels, folds, seed)
+
+for fold_index, (train_indices, validation_indices) in enumerate(folds):
+    assert not (
+        set(train_data['uri'].iloc[train_indices])
+        & set(train_data['uri'].iloc[validation_indices])
+    )
+    fold_train_features, fold_validation_features, \
+        fold_test_features = fold_feature_matrices[fold_index]
+\end{lstlisting}
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,breaklines=true]
+inner_target_encodings = compute_out_of_fold_target_encodings(
+    release_dates[train_indices],
+    train_labels[train_indices],
+    track_uris[train_indices],
+    seed * 10 + fold_index)
+
+validation_target_encodings = compute_smoothed_target_encodings(
+    release_dates[train_indices],
+    train_labels[train_indices],
+    release_dates[validation_indices])
+
+fold_validation_features['same_date_neighbor_label_mean'], \
+fold_validation_features['same_date_nearest_neighbor_distance'] = \
+    compute_same_date_neighbor_features(
+        train_audio_features[train_indices],
+        release_dates[train_indices],
+        train_labels[train_indices],
+        train_audio_features[validation_indices],
+        release_dates[validation_indices])
+\end{lstlisting}
+
+\noindent\textbf{How it was used:}
+We incorporated the URI assertion and kept all label-derived feature
+construction inside the outer fold. We then reran grouped validation to
+confirm that every row received an out-of-fold prediction.
 
 \clearpage
 \appendix
